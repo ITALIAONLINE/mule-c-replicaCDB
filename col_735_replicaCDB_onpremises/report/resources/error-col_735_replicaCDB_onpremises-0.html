@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">col_735_replicaCDB_onpremises.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">Custom types defined in Studio 6 are not migrated to Studio 7.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">771</span>&nbsp;
+                    Column: <span class="text-italic text-normal">63</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Cast to List of CustomerSede&quot; metadata:id=&quot;2edc3849-922b-42ad-8ea7-c358b7cdc6a7&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;CustomerSedeList&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- payload map (payload01, indexOfPayload01) -&gt; { annoFatturato: payload01.ANNOFATTURATO, annoFondazione: payload01.ANNOFONDAZIONE, annoRiferimentoDipendenti: payload01.ANNORIFERIMENTODIPENDENTI, areaElenco: payload01.AREAELENCO, buonoOrdine: payload01.BUONOORDINE, cap: payload01.CAP, categoriaIstat: payload01.CATEGORIAISTAT, categoriaMassimaMpesa: payload01.CATEGORIAMASSIMASPESA, categoriaMerceologica: payload01.CATEGORIAMERCEOLOGICA, cellula: payload01.CELLULA, citta: payload01.CITTA, civico: payload01.CIVICO, classificazionePMI: payload01.CLASSIFICAZIONEPMI, ClienteSpecialeFlg: payload01.CLIENTESPECIALEFLG, codProvinciaRea: payload01.CODPROVINCIAREA, codiceCategoriaIstat: payload01.CODICECATEGORIAISTAT, codiceCategoriaMassimaSpesa: payload01.CODICECATEGORIAMASSIMASPESA, codiceCategoriaMerceologica: payload01.CODICECATEGORIAMERCEOLOGICA, codiceComune: payload01.CODICECOMUNE, codiceFiscale: payload01.CODICEFISCALE, codiceFiscaleFatturazione: payload01.CODICEFISCALEFATTURAZIONE, codiceFrazione: payload01.CODICEFRAZIONE, codiceNazione: payload01.CODICENAZIONE, descNazione: payload01.DESCNAZIONE, codiceProvincia: payload01.CODICEPROVINCIA, codiceSede: payload01.CODICESEDE, codiceSedeOld: payload01.&quot;CODICESEDE_OLD&quot;, cognome: payload01.COGNOME, comune: payload01.COMUNE, coordX: payload01.COORDX, coordY: payload01.COORDY, coordinateManuali: payload01.COORDINATEMANUALI, customerCessatoRiattivabile: payload01.CUSTOMERCESSATORIATTIVABILE, customerId: payload01.CUSTOMERID, customerIdOld: payload01.&quot;CUSTOMERID_OLD&quot;, dataTransazione: payload01.DATATRANSAZIONE, datoFiscaleEsteroCertificato: payload01.DATOFISCALEESTEROCERTIFICATO, denominazioneaAlternativa: payload01.DENOMINAZIONEALTERNATIVA, dug: payload01.DUG, emailArricchimento: payload01.EMAILARRICCHIMENTO, emailArricchimentoId: payload01.EMAILARRICCHIMENTOID, emailArricchimentoPecFlag: payload01.EMAILARRICCHIMENTOPECFLAG, emailBozze: payload01.EMAILBOZZE, emailBozzeId: payload01.EMAILBOZZEID, emailBozzepecflag: payload01.EMAILBOZZEPECFLAG, emailCommercialeIol: payload01.EMAILCOMMERCIALEIOL, emailCommercialeIolId: payload01.EMAILCOMMERCIALEIOLID, emailCommercialeiolPecFlag: payload01.EMAILCOMMERCIALEIOLPECFLAG, emailFatturazione: payload01.EMAILFATTURAZIONE, emailFatturazioneId: payload01.EMAILFATTURAZIONEID, emailFatturazionePecFlag: payload01.EMAILFATTURAZIONEPECFLAG, emailPostvendita: payload01.EMAILPOSTVENDITA, emailPostvenditaId: payload01.EMAILPOSTVENDITAID, emailPostvenditaPecFlag: payload01.EMAILPOSTVENDITAPECFLAG, entePubblicoFlag: payload01.ENTEPUBBLICOFLAG, evento: payload01.EVENTO, fattelEttronicaObbligatoria: payload01.FATTELETTRONICAOBBLIGATORIA, fatturato: payload01.FATTURATO, formaGiuridica: payload01.FORMAGIURIDICA, frazione: payload01.FRAZIONE, idIndirizzo: payload01.IDINDIRIZZO, indirizzo: payload01.INDIRIZZO, industry: payload01.INDUSTRY, infoToponimo: payload01.INFOTOPONIMO, insegna: payload01.INSEGNA, ipa: payload01.IPA, mercatoAggregato: payload01.MERCATOAGGREGATO, nazioneSede: payload01.NAZIONESEDE, nome: payload01.NOME, noteRecapitoFattura: payload01.NOTERECAPITOFATTURA, numeroDipendenti: payload01.NUMERODIPENDENTI, numeroRea: payload01.NUMEROREA, opec: payload01.OPEC, opecConsegnabile: payload01.OPECCONSEGNABILE, ordCust: payload01.ORDCUST, ordSede: payload01.ORDSEDE, owner: &quot;dummy&quot;, partitaIva: payload01.PARTITAIVA, potenzialeNIP: payload01.POTENZIALENIP, profCoordinateGeografiche: payload01.PROFCOORDINATEGEOGRAFICHE, provincia: payload01.PROVINCIA, ragioneSociale: payload01.RAGIONESOCIALE, sedeCessataRiattivabile: payload01.SEDECESSATARIATTIVABILE, sedePrimariaFlag: payload01.SEDEPRIMARIAFLAG, sottoAreaMercato: payload01.SOTTOAREAMERCATO, sottocClasseDipendenti: payload01.SOTTOCLASSEDIPENDENTI, sottocClasseFatturato: payload01.SOTTOCLASSEFATTURATO, stato: payload01.STATO, statoCustomer: payload01.STATOCUSTOMER, statoOpecCommAttualiz: payload01.STATOOPECCOMMATTUALIZ, statoSede: payload01.STATOSEDE, telefono1: payload01.TELEFONO1, telefono1Id: payload01.TELEFONO1ID, telefono1Primario: payload01.TELEFONO1PRIMARIO, telefono2: payload01.TELEFONO2, telefono2Id: payload01.TELEFONO2ID, telefono2Primario: payload01.TELEFONO2PRIMARIO, telefono3: payload01.TELEFONO3, telefono3Id: payload01.TELEFONO3ID, telefono3Primario: payload01.TELEFONO3PRIMARIO, telefono4: payload01.TELEFONO4, telefono4Id: payload01.TELEFONO4ID, telefono4Primario: payload01.TELEFONO4PRIMARIO, telefono5: payload01.TELEFONO5, telefono5Id: payload01.TELEFONO5ID, telefono5Primario: payload01.TELEFONO5PRIMARIO, telefono6: payload01.TELEFONO6, telefono6Id: payload01.TELEFONO6ID, telefono6Primario: payload01.TELEFONO6PRIMARIO, telefono7: payload01.TELEFONO7, telefono7Id: payload01.TELEFONO7ID, telefono7Primario: payload01.TELEFONO7PRIMARIO, telefono8: payload01.TELEFONO8, telefono8Id: payload01.TELEFONO8ID, telefono8Primario: payload01.TELEFONO8PRIMARIO, tipoMercato: payload01.TIPOMERCATO, tipoSocGiuridica: payload01.TIPOSOCGIURIDICA, tipoSocieta: payload01.TIPOSOCIETA, tipoTelefono1: payload01.TIPOTELEFONO1, tipoTelefono2: payload01.TIPOTELEFONO2, tipoTelefono3: payload01.TIPOTELEFONO3, tipoTelefono4: payload01.TIPOTELEFONO4, tipoTelefono5: payload01.TIPOTELEFONO5, tipoTelefono6: payload01.TIPOTELEFONO6, tipoTelefono7: payload01.TIPOTELEFONO7, tipoTelefono8: payload01.TIPOTELEFONO8, toponimo: payload01.TOPONIMO, transactionId: payload01.TRANSACTIONID, ultimaPosizioneAmministrativa: payload01.ULTIMAPOSIZIONEAMMINISTRATIVA, urlFanpage: payload01.URLFANPAGE, urlFanpageId: payload01.URLFANPAGEID, urlIstituzionale: payload01.URLISTITUZIONALE, urlIstituzionaleId: payload01.URLISTITUZIONALEID, urlPagineBianche: payload01.URLPAGINEBIANCHE, urlPagineBiancheId: payload01.URLPAGINEBIANCHEID, urlPagineGialle: payload01.URLPAGINEGIALLE, urlPagineGialleId: payload01.URLPAGINEGIALLEID, priorita: payload01.PRIORITA } as Object {class: &quot;cdbPoller.CustomerSede&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">424</span>&nbsp;
+                    Column: <span class="text-italic text-normal">51</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;PolledPacket&quot; metadata:id=&quot;2652fa6a-0c9b-47a1-8b53-ae5438506242&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;PolledPacket&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { id: payload.id, packet: payload.packet, packetDate: payload.packetDate, rank: payload.rank } as Object {class: &quot;cdbPoller.PolledPacket&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">611</span>&nbsp;
+                    Column: <span class="text-italic text-normal">45</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;ObjectList&quot; metadata:id=&quot;f4c28db8-27ed-4ad2-9737-264ea1e00700&quot;&gt;
+    &lt;ee:message&gt;
+        &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/java --- { objectList: vars.GlobalTransactionList } as Object {class: &quot;cdbPoller.ObjectList&quot;}]]&gt;&lt;/ee:set-payload&gt;
+    &lt;/ee:message&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;ObjectList&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { objectList: vars.GlobalTransactionList } as Object {class: &quot;cdbPoller.ObjectList&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">34</span>&nbsp;
+                    Column: <span class="text-italic text-normal">60</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Copy_of_Transform Message&quot; metadata:id=&quot;8f36edbf-dde4-49da-be6e-f9b8f1462265&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;PolledPacketIterator&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { map: payload } as Object {class: &quot;cdbPoller.PolledPacketIterator&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">723</span>&nbsp;
+                    Column: <span class="text-italic text-normal">53</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;newTransaction&quot; metadata:id=&quot;05728580-8d40-46d7-8aba-2a35a65f0358&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;Transaction&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { transactionId: payload, customerSedeList: vars.CustomerSedeList } as Object {class: &quot;cdbPoller.Transaction&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">71</span>&nbsp;
+                    Column: <span class="text-italic text-normal">56</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Copy_of_newPacket&quot; metadata:id=&quot;f1c55849-e6d5-4a84-9052-73657e90bd3f&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;newPacket&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { packetId: payload.id, transactionList: vars.TransactionList } as Object {class: &quot;cdbPoller.Packet&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">159</span>&nbsp;
+                    Column: <span class="text-italic text-normal">52</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Read data&quot; metadata:id=&quot;8c3f556d-83c3-42c3-98b8-f8f9e4eabd87&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;PolledPacketList&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- payload.param2 map (payload01, indexOfPayload01) -&gt; { id: payload01.guid, packet: payload01.packet, packetDate: payload01.data, rank: payload01.rank } as Object {class: &quot;cdbPoller.PolledPacket&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">469</span>&nbsp;
+                    Column: <span class="text-italic text-normal">53</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;newPacketContainer&quot; metadata:id=&quot;9a450bf0-5d90-4ba1-85d9-684852e75a2f&quot;&gt;
+    &lt;ee:message&gt;
+        &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/java --- { executionDate: now() as String {format: &quot;yyyyMMdd-HH:mm:ss&quot;}, packetList: vars.PacketList } as Object {class: &quot;cdbPoller.PacketContainer&quot;}]]&gt;&lt;/ee:set-payload&gt;
+    &lt;/ee:message&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;PacketContainer&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { executionDate: now() as String {format: &quot;yyyyMMdd-HH:mm:ss&quot;}, packetList: vars.PacketList } as Object {class: &quot;cdbPoller.PacketContainer&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">357</span>&nbsp;
+                    Column: <span class="text-italic text-normal">62</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Create PollerOutput&quot; metadata:id=&quot;3efd2f53-76b9-43ec-9b7a-2fb650246cc6&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;PollerOutput&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { executionDate: now() as String {format: &quot;yyyyMMdd-HH:mm:ss&quot;} } as Object {class: &quot;col735ReplicaCDB.PollerOutput&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">659</span>&nbsp;
+                    Column: <span class="text-italic text-normal">45</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;ObjectList&quot; metadata:id=&quot;f4c28db8-27ed-4ad2-9737-264ea1e00700&quot;&gt;
+    &lt;ee:message&gt;
+        &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/java --- { objectList: vars.GlobalTransactionList } as Object {class: &quot;cdbPoller.ObjectList&quot;}]]&gt;&lt;/ee:set-payload&gt;
+    &lt;/ee:message&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;ObjectList&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { objectList: vars.GlobalTransactionList } as Object {class: &quot;cdbPoller.ObjectList&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">55</span>&nbsp;
+                    Column: <span class="text-italic text-normal">59</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Copy_of_PolledPacket&quot; metadata:id=&quot;2652fa6a-0c9b-47a1-8b53-ae5438506242&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;PolledPacket&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { id: payload.id, packet: payload.packet, packetDate: payload.packetDate, rank: payload.rank } as Object {class: &quot;cdbPoller.PolledPacket&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">568</span>&nbsp;
+                    Column: <span class="text-italic text-normal">173</span>
+                </h4>
+                <br>
+                <pre>&lt;jms:publish doc:name=&quot;Enqueue message&quot; metadata:id=&quot;5d5be067-c0d8-42a0-aee9-7f4d689acb7d&quot; sendCorrelationId=&quot;#[migration::JmsTransport::jmsSendCorrelationId(vars)]&quot; config-ref=&quot;Active_MQ&quot; destination=&quot;${mq.queue}&quot;&gt;
+    &lt;!--Migration WARN: Avoid using properties to set the JMS properties and headers.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-jms#SendingMessages--&gt;
+    &lt;jms:message correlationId=&quot;#[migration::JmsTransport::jmsCorrelationId(correlationId, vars)]&quot;&gt;
+        &lt;jms:reply-to destination=&quot;#[migration::JmsTransport::jmsPublishReplyTo(vars)]&quot; /&gt;
+        &lt;jms:properties&gt;#[migration::JmsTransport::jmsPublishProperties(vars)]&lt;/jms:properties&gt;
+    &lt;/jms:message&gt;
+&lt;/jms:publish&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">187</span>&nbsp;
+                    Column: <span class="text-italic text-normal">70</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Read list of Poller results&quot; metadata:id=&quot;e396765d-4b91-40b1-9e12-74e21be18798&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;PollResults&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- payload.param2 map (payload01, indexOfPayload01) -&gt; { tipo: payload01.tipo, guid: payload01.guid, padre: payload01.padre, packet: payload01.packet, data: payload01.data, rank: payload01.rank, annoFatturato: payload01.ANNOFATTURATO, annoFondazione: payload01.ANNOFONDAZIONE, annoRiferimentoDipendenti: payload01.ANNORIFERIMENTODIPENDENTI, areaElenco: payload01.AREAELENCO, buonoOrdine: payload01.BUONOORDINE, cap: payload01.CAP, categoriaIstat: payload01.CATEGORIAISTAT, categoriaMassimaMpesa: payload01.CATEGORIAMASSIMASPESA, categoriaMerceologica: payload01.CATEGORIAMERCEOLOGICA, cellula: payload01.CELLULA, citta: payload01.CITTA, civico: payload01.CIVICO, classificazionePMI: payload01.CLASSIFICAZIONEPMI, ClienteSpecialeFlg: payload01.CLIENTESPECIALEFLG, codProvinciaRea: payload01.CODPROVINCIAREA, codiceCategoriaIstat: payload01.CODICECATEGORIAISTAT, codiceCategoriaMassimaSpesa: payload01.CODICECATEGORIAMASSIMASPESA, codiceCategoriaMerceologica: payload01.CODICECATEGORIAMERCEOLOGICA, codiceComune: payload01.CODICECOMUNE, codiceFiscale: payload01.CODICEFISCALE, codiceFiscaleFatturazione: payload01.CODICEFISCALEFATTURAZIONE, codiceFrazione: payload01.CODICEFRAZIONE, codiceNazione: payload01.CODICENAZIONE, codiceNazioneCustomer: payload01.CODICENAZIONECUSTOMER, descNazione: payload01.DESCNAZIONE, codiceProvincia: payload01.CODICEPROVINCIA, codiceSede: payload01.CODICESEDE, codiceSedeOld: payload01.&quot;CODICESEDE_OLD&quot;, cognome: payload01.COGNOME, comune: payload01.COMUNE, coordX: payload01.COORDX, coordY: payload01.COORDY, coordinateManuali: payload01.COORDINATEMANUALI, customerCessatoRiattivabile: payload01.CUSTOMERCESSATORIATTIVABILE, customerId: payload01.CUSTOMERID, customerIdOld: payload01.&quot;CUSTOMERID_OLD&quot;, dataTransazione: payload01.DATATRANSAZIONE, datoFiscaleEsteroCertificato: payload01.DATOFISCALEESTEROCERTIFICATO, dug: payload01.DUG, emailArricchimento: payload01.EMAILARRICCHIMENTO, emailArricchimentoId: payload01.EMAILARRICCHIMENTOID, emailArricchimentoPecFlag: payload01.EMAILARRICCHIMENTOPECFLAG, emailBozze: payload01.EMAILBOZZE, emailBozzeId: payload01.EMAILBOZZEID, emailBozzepecflag: payload01.EMAILBOZZEPECFLAG, emailCommercialeIol: payload01.EMAILCOMMERCIALEIOL, emailCommercialeIolId: payload01.EMAILCOMMERCIALEIOLID, emailCommercialeiolPecFlag: payload01.EMAILCOMMERCIALEIOLPECFLAG, emailFatturazione: payload01.EMAILFATTURAZIONE, emailFatturazioneId: payload01.EMAILFATTURAZIONEID, emailFatturazionePecFlag: payload01.EMAILFATTURAZIONEPECFLAG, emailPostvendita: payload01.EMAILPOSTVENDITA, emailPostvenditaId: payload01.EMAILPOSTVENDITAID, emailPostvenditaPecFlag: payload01.EMAILPOSTVENDITAPECFLAG, entePubblicoFlag: payload01.ENTEPUBBLICOFLAG, evento: payload01.EVENTO, fattelEttronicaObbligatoria: payload01.FATTELETTRONICAOBBLIGATORIA, fatturato: payload01.FATTURATO, formaGiuridica: payload01.FORMAGIURIDICA, frazione: payload01.FRAZIONE, idIndirizzo: payload01.IDINDIRIZZO, indirizzo: payload01.INDIRIZZO, industry: payload01.INDUSTRY, infoToponimo: payload01.INFOTOPONIMO, insegna: payload01.INSEGNA, mercatoAggregato: payload01.MERCATOAGGREGATO, nazioneSede: payload01.NAZIONESEDE, nome: payload01.NOME, noteRecapitoFattura: payload01.NOTERECAPITOFATTURA, numeroDipendenti: payload01.NUMERODIPENDENTI, numeroRea: payload01.NUMEROREA, opec: payload01.OPEC, opecConsegnabile: payload01.OPECCONSEGNABILE, ordCust: payload01.ORDCUST, ordSede: payload01.ORDSEDE, owner: &quot;dummy&quot;, partitaIva: payload01.PARTITAIVA, potenzialeNIP: payload01.POTENZIALENIP, profCoordinateGeografiche: payload01.PROFCOORDINATEGEOGRAFICHE, provincia: payload01.PROVINCIA, ragioneSociale: payload01.RAGIONESOCIALE, sedeCessataRiattivabile: payload01.SEDECESSATARIATTIVABILE, sedePrimariaFlag: payload01.SEDEPRIMARIAFLAG, sottoAreaMercato: payload01.SOTTOAREAMERCATO, sottocClasseDipendenti: payload01.SOTTOCLASSEDIPENDENTI, sottocClasseFatturato: payload01.SOTTOCLASSEFATTURATO, stato: payload01.STATO, statoCustomer: payload01.STATOCUSTOMER, statoOpecCommAttualiz: payload01.STATOOPECCOMMATTUALIZ, statoSede: payload01.STATOSEDE, telefono1: payload01.TELEFONO1, telefono1Id: payload01.TELEFONO1ID, telefono1Primario: payload01.TELEFONO1PRIMARIO, telefono2: payload01.TELEFONO2, telefono2Id: payload01.TELEFONO2ID, telefono2Primario: payload01.TELEFONO2PRIMARIO, telefono3: payload01.TELEFONO3, telefono3Id: payload01.TELEFONO3ID, telefono3Primario: payload01.TELEFONO3PRIMARIO, telefono4: payload01.TELEFONO4, telefono4Id: payload01.TELEFONO4ID, telefono4Primario: payload01.TELEFONO4PRIMARIO, telefono5: payload01.TELEFONO5, telefono5Id: payload01.TELEFONO5ID, telefono5Primario: payload01.TELEFONO5PRIMARIO, telefono6: payload01.TELEFONO6, telefono6Id: payload01.TELEFONO6ID, telefono6Primario: payload01.TELEFONO6PRIMARIO, telefono7: payload01.TELEFONO7, telefono7Id: payload01.TELEFONO7ID, telefono7Primario: payload01.TELEFONO7PRIMARIO, telefono8: payload01.TELEFONO8, telefono8Id: payload01.TELEFONO8ID, telefono8Primario: payload01.TELEFONO8PRIMARIO, tipoMercato: payload01.TIPOMERCATO, tipoSocGiuridica: payload01.TIPOSOCGIURIDICA, tipoSocieta: payload01.TIPOSOCIETA, tipoTelefono1: payload01.TIPOTELEFONO1, tipoTelefono2: payload01.TIPOTELEFONO2, tipoTelefono3: payload01.TIPOTELEFONO3, tipoTelefono4: payload01.TIPOTELEFONO4, tipoTelefono5: payload01.TIPOTELEFONO5, tipoTelefono6: payload01.TIPOTELEFONO6, tipoTelefono7: payload01.TIPOTELEFONO7, tipoTelefono8: payload01.TIPOTELEFONO8, toponimo: payload01.TOPONIMO, transactionId: payload01.TRANSACTIONID, ultimaPosizioneAmministrativa: payload01.ULTIMAPOSIZIONEAMMINISTRATIVA, urlFanpage: payload01.URLFANPAGE, urlFanpageId: payload01.URLFANPAGEID, urlIstituzionale: payload01.URLISTITUZIONALE, urlIstituzionaleId: payload01.URLISTITUZIONALEID, urlPagineBianche: payload01.URLPAGINEBIANCHE, urlPagineBiancheId: payload01.URLPAGINEBIANCHEID, urlPagineGialle: payload01.URLPAGINEGIALLE, urlPagineGialleId: payload01.URLPAGINEGIALLEID, priorita: payload01.PRIORITA, contabilitaCliente: payload01.CONTABILITACLIENTE, categoriaAppartenenza: payload01.CATEGORIAAPPARETENENZA, indicatorePA: payload01.INDICATOREPA, consVTerziFlag: payload01.&quot;CONS_VT_FLG&quot;, consProfilazFlag: payload01.&quot;CONS_PFLZ_FLG&quot;, tel1ConsFlag: payload01.&quot;CONS_TEL1_FLG&quot;, tel2ConsFlag: payload01.&quot;CONS_TEL2_FLG&quot;, tel3ConsFlag: payload01.&quot;CONS_TEL3_FLG&quot;, tel4ConsFlag: payload01.&quot;CONS_TEL4_FLG&quot;, tel5ConsFlag: payload01.&quot;CONS_TEL5_FLG&quot;, tel6ConsFlag: payload01.&quot;CONS_TEL6_FLG&quot;, tel7ConsFlag: payload01.&quot;CONS_TEL7_FLG&quot;, tel8ConsFlag: payload01.&quot;CONS_TEL8_FLG&quot; } as Object {class: &quot;col735ReplicaCDB.PollResult&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">540</span>&nbsp;
+                    Column: <span class="text-italic text-normal">60</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;Transform Message Enqueue&quot; metadata:id=&quot;f7c09468-e50c-446d-a9c7-63f5a23ae604&quot;&gt;
+    &lt;ee:message&gt;
+        &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/java --- { executionDate: payload.executionDate, packetList: payload.packetList } as Object {class: &quot;cdbPoller.PacketContainerOutput&quot;}]]&gt;&lt;/ee:set-payload&gt;
+    &lt;/ee:message&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">107</span>&nbsp;
+                    Column: <span class="text-italic text-normal">181</span>
+                </h4>
+                <br>
+                <pre>&lt;jms:publish doc:name=&quot;Copy_of_Enqueue message&quot; metadata:id=&quot;5d5be067-c0d8-42a0-aee9-7f4d689acb7d&quot; sendCorrelationId=&quot;#[migration::JmsTransport::jmsSendCorrelationId(vars)]&quot; config-ref=&quot;Active_MQ&quot; destination=&quot;${mq.queue}&quot;&gt;
+    &lt;!--Migration WARN: Avoid using properties to set the JMS properties and headers.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-jms#SendingMessages--&gt;
+    &lt;jms:message correlationId=&quot;#[migration::JmsTransport::jmsCorrelationId(correlationId, vars)]&quot;&gt;
+        &lt;jms:reply-to destination=&quot;#[migration::JmsTransport::jmsPublishReplyTo(vars)]&quot; /&gt;
+        &lt;jms:properties&gt;#[migration::JmsTransport::jmsPublishProperties(vars)]&lt;/jms:properties&gt;
+    &lt;/jms:message&gt;
+&lt;/jms:publish&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">441</span>&nbsp;
+                    Column: <span class="text-italic text-normal">48</span>
+                </h4>
+                <br>
+                <pre>&lt;ee:transform doc:name=&quot;newPacket&quot; metadata:id=&quot;f1c55849-e6d5-4a84-9052-73657e90bd3f&quot;&gt;
+    &lt;ee:variables&gt;
+        &lt;ee:set-variable variableName=&quot;newPacket&quot;&gt;&lt;![CDATA[%dw 2.0 output application/java --- { packetId: payload.id, transactionList: vars.TransactionList } as Object {class: &quot;cdbPoller.Packet&quot;}]]&gt;&lt;/ee:set-variable&gt;
+    &lt;/ee:variables&gt;
+&lt;/ee:transform&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

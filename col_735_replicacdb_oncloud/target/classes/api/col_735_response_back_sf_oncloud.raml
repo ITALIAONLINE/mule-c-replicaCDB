@@ -1,0 +1,58 @@
+#%RAML 1.0
+title: CDB Response back from SalesForce
+version: 1.0
+baseUri: http://mulesoft.com
+
+/sfResponceCDB:
+  post:
+     description: Publish data
+     body:
+          application/json:
+           example: {
+                     "response":[
+                        {
+                           "transactionId":"001600010056373E",
+                           "esito":"OK",
+                           "codiceErrore":"00",
+                           "descrizioneErrore":"descrError"
+                        },
+                        {
+                           "transactionId":"001600010056373E",
+                           "esito":"OK",
+                           "codiceErrore":"00",
+                           "descrizioneErrore":"descrError"
+                        },
+                        {
+                           "transactionId":"001600010056373E",
+                           "esito":"OK",
+                           "codiceErrore":"00",
+                           "descrizioneErrore":"descrError"
+                        },
+                        {
+                           "transactionId":"001600010056373E",
+                           "esito":"OK",
+                           "codiceErrore":"00",
+                           "descrizioneErrore":"descrError"
+                        }
+                     ]
+                  }
+     responses:
+            200:
+                body:
+                  application/json:
+                    example: |
+                      {
+                        "esito":"OK",
+                        "codiceErrore":"00",
+                        "descrizioneErrore":"descrError"
+                      }
+            404:
+              body:
+                  application/json:
+                    example: |
+                      {
+                        "esito":"KO",
+                        "codiceErrore":"00",
+                        "descrizioneErrore":"descrError"
+                      }                       
+                    

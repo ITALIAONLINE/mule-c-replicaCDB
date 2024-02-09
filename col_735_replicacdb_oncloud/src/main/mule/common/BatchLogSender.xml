@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<flow name="BatchLogSenderFlow" doc:id="19d21cfb-115a-4332-b765-8d761843b436" >
+		<ee:transform doc:name="Transform Message" doc:id="800310fb-c561-4b95-af26-11928e1c813d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+TRANSACTION_ID: if (payload.TransactionId != null) payload.TransactionId else "",
+LOG_LEVEL: if (payload.LogLevel != null) payload.LogLevel else "",
+LOG_MESSAGE: if (payload.LogMessage != null) payload.LogMessage else "",
+BATCH_FLOW_NAME: if (payload.BatchFlowName != null) payload.BatchFlowName else "",
+FONTE: if (payload.Fonte != null) upper (payload.Fonte) else "",
+CREATION_DATE: now() as String {format: "yyyy-MM-dd HH:mm:ss.SSS"},
+FILE_NAME: if (payload.FileName != null) payload.FileName else "",
+START_DATE: payload.StartDate,
+END_DATE: payload.EndDate,
+NUM_ROWS: if (payload.NumRows != null) payload.NumRows else "0",
+NUM_ROWS_ELABORATED: if (payload.NumRowsElaborated != null) payload.NumRowsElaborated else "0",
+NUM_ROWS_BAD: if (payload.NumRowsBad != null) payload.NumRowsBad else "0",
+BAD_FILE_NAME: if (payload.BadFileName != null) payload.BadFileName else "",
+SF_JOB_ID: if (payload.SfJobId != null) payload.SfJobId else "",
+ESITO: if (payload.Esito != null) payload.Esito else "",
+EXCEPTION_MESSAGE: if (payload.ExceptionMessage != null) payload.ExceptionMessage else "",
+ERROR_TYPE: if (payload.ErrorType != null) payload.ErrorType else "",
+ESITO_APEX_SYNC:  if (payload.EsitiApexSync != null) payload.EsitiApexSync else ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<jms:publish doc:name="Publish" doc:id="2c857ddc-f9d2-41e9-8fa8-d18346b13edb" destination="coltrane.iol.BatchQLog.${environment.prefix}" config-ref="Active_MQ"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ef1c785b-ed05-43aa-a8d0-8d0d681daf8f" >
+				<ee:transform doc:name="Transform Message" doc:id="55dfed7c-aa1d-4a60-b862-304cd25132e7" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="errorMessage" ><![CDATA[%dw 2.0
+output application/java
+---
+error.errorMessage]]></ee:set-variable>
+						<ee:set-variable variableName="errorDescription" ><![CDATA[%dw 2.0
+output application/java
+---
+error.description]]></ee:set-variable>
+						<ee:set-variable variableName="errorType" ><![CDATA[%dw 2.0
+output application/java
+---
+error.errorType]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="LoggerErrorBatchLog" doc:id="e10584f2-c503-401f-b56a-eab9e16573a5" message="LOG BATCH SENDER-----LOG ERROR-----#[vars.errorMessage]"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

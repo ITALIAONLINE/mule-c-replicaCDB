@@ -1,0 +1,1 @@
+[{"transId":"0004002800F81670","error":"Upsert failed. First exception on row 0; first error: MALFORMED_ID, Record Type ID: id value of incorrect type: 0129E0000007FScQxAM: [RecordTypeId]"},{"transId":"0008001901145374","error":"Upsert failed. First exception on row 1; first error: MALFORMED_ID, Record Type ID: id value of incorrect type: 0126E000000IqOxQAxK: [RecordTypeId]"}]

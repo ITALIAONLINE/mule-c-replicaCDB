@@ -1,0 +1,20 @@
+%dw 2.0
+
+type auto_19d21cfb_115a_4332_b765_8d761843b436_Input_Payload = {|
+  TransactionId: Null, 
+  LogLevel: String, 
+  LogMessage: String, 
+  BatchFlowName: String, 
+  Fonte: String, 
+  FileName: String, 
+  StartDate: String {"format": "yyyy-MM-dd-HH:mm:ss"}, 
+  EndDate: String {"format": "yyyy-MM-dd-HH:mm:ss"}, 
+  NumRows: Number, 
+  NumRowElaborated: Number, 
+  NumRowsBad: String, 
+  BadFileName: String, 
+  Esito: String, 
+  ExceptionMessage: String, 
+  ErrorType: String
+|}
+

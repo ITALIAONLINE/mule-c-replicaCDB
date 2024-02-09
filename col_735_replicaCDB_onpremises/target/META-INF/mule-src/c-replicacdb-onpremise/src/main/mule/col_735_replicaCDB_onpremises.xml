@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:spring-module="http://www.mulesoft.org/schema/mule/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd http://www.mulesoft.org/schema/mule/spring http://www.mulesoft.org/schema/mule/spring/current/mule-spring.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+
+    <configuration-properties file="app-env-${mule.env}.properties" />
+
+    <jms:config name="Active_MQ">
+        <jms:active-mq-connection username="admin" password="admin">
+            <jms:caching-strategy>
+                <jms:no-caching />
+            </jms:caching-strategy>
+            <jms:factory-configuration brokerUrl="${mq.brokerUrl}" maxRedelivery="10" />
+        </jms:active-mq-connection>
+    </jms:config>
+	<db:config name="CDB_Configuration" doc:name="Database Config" doc:id="57c1b760-fe16-4156-8d2d-bc7a629ffea1" >
+		<db:oracle-connection host="${cdb.host}" port="${cdb.port}" user="${cdb.user}" password="${cdb.password}" instance="${cdb.instance}" >
+			<reconnection >
+				<reconnect frequency="72000" count="100"/>
+			</reconnection>
+			<db:column-types>
+				<db:column-type id="3910268" typeName="ARRAY_CUST_BLACKLIST" />
+				<db:column-type id="3910178" typeName="CUST_BLACKLIST" />
+			</db:column-types>
+		</db:oracle-connection>
+	</db:config>
+	<global-property doc:name="Global Property" doc:id="0467790c-d91b-4e16-8fae-6f38238bb07c" name="mule.env" value="local" />
+	<flow name="col_735_replicaCDB_onpremisesFlow" doc:description="La procedura del Poller si occupa di:  1) selezionare i pacchetti (intesi come insiemi di transazioni che condividono customer)  2) aggiornarli a P (stato Pending per estrazione)  3) restituirli sotto forma di cursore  Per la lettura del cursore passo direttamente il payload (che di fatto è un oggetto Java Mulesoft) alla classe PolledPacketIterator, da cui estraggo un ResultSetIterator e da quello i record di interesse. Per ogni record di interesse (un 'pacchetto') esamino le transazioni una alla volta ed estraggo i record di customersede. Alla fine della procedura aggiorno tutte le transazioni a Q (per passare ad Oracle un Array si veda il metodo 'getOracleSQlArray' della classe ObjectList) ed accodo il contenitore di pacchetti (PacketContainer)">
+        <scheduler doc:name="Poller">
+            <scheduling-strategy>
+                <fixed-frequency frequency="20" startDelay="1" timeUnit="SECONDS" />
+            </scheduling-strategy>
+        </scheduler>
+
+        <flow-ref name="ReadDB" doc:name="ReadDB" />
+
+        <logger message="#[payload]" level="INFO" doc:name="Logger" />
+
+        <set-variable variableName="Route" value="new" doc:name="Route" />
+
+        <choice doc:name="Choice">
+        	<when expression="#[payload.param2 == null or sizeOf(payload.param2) == 0]">
+				<logger level="INFO" doc:name="No data" doc:id="6ba726c3-6ac6-429a-bcd4-de907f8c2e2d" message="No data from DB"/>
+			</when>
+            <when expression='#[vars.Route == "old"]'>
+                <logger message="Old route" level="INFO" doc:name="Logger" />
+                <set-payload value="#[payload]" mimeType="application/java" />
+                <ee:transform doc:name="Read data">
+                    <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                    <ee:variables>
+                        <ee:set-variable variableName="PolledPacketList"><![CDATA[%dw 2.0
+output application/java  
+---
+payload.param2 map (payload01, indexOfPayload01) -> {
+    id: payload01.guid,
+    packet: payload01.packet,
+    packetDate: payload01.data,
+    rank: payload01.rank
+  } as Object {class: "cdbPoller.PolledPacket"}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <flow-ref name="readResultsAndSetUpNew" doc:name="readResultsAndSetUpNew" />
+                <choice doc:name="Choice">
+                    <when expression="#[vars.PolledPacketList != null and sizeOf(vars.PolledPacketList.size()) &gt; 0]">
+                        <flow-ref name="forEachPolledPacket_flow" doc:name="forEachPolledPacket_flow" />
+                        <flow-ref name="EnqueueAndUpdateToQ" doc:name="EnqueueAndUpdateToQ" />
+                    </when>
+                    <otherwise>
+                        <logger message="Nessun dato estratto da DB" level="INFO" doc:name="Logger" />
+                    </otherwise>
+                </choice>
+            </when>
+            <when expression='#[vars.Route == "new"]'>
+                <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----LOG New route" level="INFO" doc:name="Logger" />
+                <set-payload value="#[payload]" mimeType="application/java" />
+                <ee:transform doc:name="Read list of Poller results">
+                    <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                    <ee:variables>
+                        <ee:set-variable variableName="PollResults"><![CDATA[%dw 2.0
+output application/java  
+---
+payload.param2 map ((payload01, indexOfPayload01) -> {
+    tipo: payload01.tipo,
+    guid: payload01.guid,
+    padre: payload01.padre,
+    packet: payload01.packet,
+    data: payload01.data,
+    rank: payload01.rank,
+    annoFatturato: payload01.ANNOFATTURATO,
+    annoFondazione: payload01.ANNOFONDAZIONE,
+    annoRiferimentoDipendenti: payload01.ANNORIFERIMENTODIPENDENTI,
+    areaElenco: payload01.AREAELENCO,
+    buonoOrdine: payload01.BUONOORDINE,
+    cap: payload01.CAP,
+    categoriaIstat: payload01.CATEGORIAISTAT,
+    categoriaMassimaMpesa: payload01.CATEGORIAMASSIMASPESA,
+    categoriaMerceologica: payload01.CATEGORIAMERCEOLOGICA,
+    cellula: payload01.CELLULA,
+    citta: payload01.CITTA,
+    civico: payload01.CIVICO,
+    classificazionePMI: payload01.CLASSIFICAZIONEPMI,
+    ClienteSpecialeFlg: payload01.CLIENTESPECIALEFLG,
+    codProvinciaRea: payload01.CODPROVINCIAREA,
+    codiceCategoriaIstat: payload01.CODICECATEGORIAISTAT,
+    codiceCategoriaMassimaSpesa: payload01.CODICECATEGORIAMASSIMASPESA,
+    codiceCategoriaMerceologica: payload01.CODICECATEGORIAMERCEOLOGICA,
+    codiceComune: payload01.CODICECOMUNE,
+    codiceFiscale: payload01.CODICEFISCALE,
+    codiceFiscaleFatturazione: payload01.CODICEFISCALEFATTURAZIONE,
+    codiceFrazione: payload01.CODICEFRAZIONE,
+    codiceNazione: payload01.CODICENAZIONE,
+    codiceNazioneCustomer: payload01.CODICENAZIONECUSTOMER,
+    descNazione: payload01.DESCNAZIONE,
+    codiceProvincia: payload01.CODICEPROVINCIA,
+    codiceSede: payload01.CODICESEDE,
+    codiceSedeOld: payload01."CODICESEDE_OLD",
+    cognome: payload01.COGNOME,
+    comune: payload01.COMUNE,
+    coordX: payload01.COORDX,
+    coordY: payload01.COORDY,
+    coordinateManuali: payload01.COORDINATEMANUALI,
+    customerCessatoRiattivabile: payload01.CUSTOMERCESSATORIATTIVABILE,
+    customerId: payload01.CUSTOMERID,
+    customerIdOld: payload01."CUSTOMERID_OLD",
+    dataTransazione: payload01.DATATRANSAZIONE,
+    datoFiscaleEsteroCertificato: payload01.DATOFISCALEESTEROCERTIFICATO,
+    dug: payload01.DUG,
+    emailArricchimento: payload01.EMAILARRICCHIMENTO,
+    emailArricchimentoId: payload01.EMAILARRICCHIMENTOID,
+    emailArricchimentoPecFlag: payload01.EMAILARRICCHIMENTOPECFLAG,
+    emailBozze: payload01.EMAILBOZZE,
+    emailBozzeId: payload01.EMAILBOZZEID,
+    emailBozzepecflag: payload01.EMAILBOZZEPECFLAG,
+    emailCommercialeIol: payload01.EMAILCOMMERCIALEIOL,
+    emailCommercialeIolId: payload01.EMAILCOMMERCIALEIOLID,
+    emailCommercialeiolPecFlag: payload01.EMAILCOMMERCIALEIOLPECFLAG,
+    emailFatturazione: payload01.EMAILFATTURAZIONE,
+    emailFatturazioneId: payload01.EMAILFATTURAZIONEID,
+    emailFatturazionePecFlag: payload01.EMAILFATTURAZIONEPECFLAG,
+    emailPostvendita: payload01.EMAILPOSTVENDITA,
+    emailPostvenditaId: payload01.EMAILPOSTVENDITAID,
+    emailPostvenditaPecFlag: payload01.EMAILPOSTVENDITAPECFLAG,
+    entePubblicoFlag: payload01.ENTEPUBBLICOFLAG,
+    evento: payload01.EVENTO,
+    fattelEttronicaObbligatoria: payload01.FATTELETTRONICAOBBLIGATORIA,
+    fatturato: payload01.FATTURATO,
+    formaGiuridica: payload01.FORMAGIURIDICA,
+    frazione: payload01.FRAZIONE,
+    idIndirizzo: payload01.IDINDIRIZZO,
+    indirizzo: payload01.INDIRIZZO,
+    industry: payload01.INDUSTRY,
+    infoToponimo: payload01.INFOTOPONIMO,
+    insegna: payload01.INSEGNA,
+    mercatoAggregato: payload01.MERCATOAGGREGATO,
+    nazioneSede: payload01.NAZIONESEDE,
+    nome: payload01.NOME,
+    noteRecapitoFattura: payload01.NOTERECAPITOFATTURA,
+    numeroDipendenti: payload01.NUMERODIPENDENTI,
+    numeroRea: payload01.NUMEROREA,
+    opec: payload01.OPEC,
+    opecConsegnabile: payload01.OPECCONSEGNABILE,
+    ordCust: payload01.ORDCUST,
+    ordSede: payload01.ORDSEDE,
+    owner: "dummy",
+    partitaIva: payload01.PARTITAIVA,
+    potenzialeNIP: payload01.POTENZIALENIP,
+    profCoordinateGeografiche: payload01.PROFCOORDINATEGEOGRAFICHE,
+    provincia: payload01.PROVINCIA,
+    ragioneSociale: payload01.RAGIONESOCIALE,
+    sedeCessataRiattivabile: payload01.SEDECESSATARIATTIVABILE,
+    sedePrimariaFlag: payload01.SEDEPRIMARIAFLAG,
+    sottoAreaMercato: payload01.SOTTOAREAMERCATO,
+    sottocClasseDipendenti: payload01.SOTTOCLASSEDIPENDENTI,
+    sottocClasseFatturato: payload01.SOTTOCLASSEFATTURATO,
+    stato: payload01.STATO,
+    statoCustomer: payload01.STATOCUSTOMER,
+    statoOpecCommAttualiz: payload01.STATOOPECCOMMATTUALIZ,
+    statoSede: payload01.STATOSEDE,
+    telefono1: payload01.TELEFONO1,
+    telefono1Id: payload01.TELEFONO1ID,
+    telefono1Primario: payload01.TELEFONO1PRIMARIO,
+    telefono2: payload01.TELEFONO2,
+    telefono2Id: payload01.TELEFONO2ID,
+    telefono2Primario: payload01.TELEFONO2PRIMARIO,
+    telefono3: payload01.TELEFONO3,
+    telefono3Id: payload01.TELEFONO3ID,
+    telefono3Primario: payload01.TELEFONO3PRIMARIO,
+    telefono4: payload01.TELEFONO4,
+    telefono4Id: payload01.TELEFONO4ID,
+    telefono4Primario: payload01.TELEFONO4PRIMARIO,
+    telefono5: payload01.TELEFONO5,
+    telefono5Id: payload01.TELEFONO5ID,
+    telefono5Primario: payload01.TELEFONO5PRIMARIO,
+    telefono6: payload01.TELEFONO6,
+    telefono6Id: payload01.TELEFONO6ID,
+    telefono6Primario: payload01.TELEFONO6PRIMARIO,
+    telefono7: payload01.TELEFONO7,
+    telefono7Id: payload01.TELEFONO7ID,
+    telefono7Primario: payload01.TELEFONO7PRIMARIO,
+    telefono8: payload01.TELEFONO8,
+    telefono8Id: payload01.TELEFONO8ID,
+    telefono8Primario: payload01.TELEFONO8PRIMARIO,
+    tipoMercato: payload01.TIPOMERCATO,
+    tipoSocGiuridica: payload01.TIPOSOCGIURIDICA,
+    tipoSocieta: payload01.TIPOSOCIETA,
+    tipoTelefono1: payload01.TIPOTELEFONO1,
+    tipoTelefono2: payload01.TIPOTELEFONO2,
+    tipoTelefono3: payload01.TIPOTELEFONO3,
+    tipoTelefono4: payload01.TIPOTELEFONO4,
+    tipoTelefono5: payload01.TIPOTELEFONO5,
+    tipoTelefono6: payload01.TIPOTELEFONO6,
+    tipoTelefono7: payload01.TIPOTELEFONO7,
+    tipoTelefono8: payload01.TIPOTELEFONO8,
+    toponimo: payload01.TOPONIMO,
+    transactionId: payload01.TRANSACTIONID,
+    ultimaPosizioneAmministrativa: payload01.ULTIMAPOSIZIONEAMMINISTRATIVA,
+    urlFanpage: payload01.URLFANPAGE,
+    urlFanpageId: payload01.URLFANPAGEID,
+    urlIstituzionale: payload01.URLISTITUZIONALE,
+    urlIstituzionaleId: payload01.URLISTITUZIONALEID,
+    urlPagineBianche: payload01.URLPAGINEBIANCHE,
+    urlPagineBiancheId: payload01.URLPAGINEBIANCHEID,
+    urlPagineGialle: payload01.URLPAGINEGIALLE,
+    urlPagineGialleId: payload01.URLPAGINEGIALLEID,
+    priorita: payload01.PRIORITA,
+    contabilitaCliente: payload01.CONTABILITACLIENTE,
+    categoriaAppartenenza: payload01.CATEGORIAAPPARETENENZA,
+    indicatorePA: payload01.INDICATOREPA,
+    consVTerziFlag: payload01."CONS_VT_FLG",
+    consProfilazFlag: payload01."CONS_PFLZ_FLG",
+    tel1ConsFlag: payload01."CONS_TEL1_FLG",
+    tel2ConsFlag: payload01."CONS_TEL2_FLG",
+    tel3ConsFlag: payload01."CONS_TEL3_FLG",
+    tel4ConsFlag: payload01."CONS_TEL4_FLG",
+    tel5ConsFlag: payload01."CONS_TEL5_FLG",
+    tel6ConsFlag: payload01."CONS_TEL6_FLG",
+    tel7ConsFlag: payload01."CONS_TEL7_FLG",
+    tel8ConsFlag: payload01."CONS_TEL8_FLG",
+    tel1CustPrimFlag: payload01."TEL1_PRIM_CUST",
+    tel2CustPrimFlag: payload01."TEL2_PRIM_CUST",
+    tel3CustPrimFlag: payload01."TEL3_PRIM_CUST",
+    tel4CustPrimFlag: payload01."TEL4_PRIM_CUST",
+    tel5CustPrimFlag: payload01."TEL5_PRIM_CUST",
+    tel6CustPrimFlag: payload01."TEL6_PRIM_CUST",
+    tel7CustPrimFlag: payload01."TEL7_PRIM_CUST",
+    tel8CustPrimFlag: payload01."TEL8_PRIM_CUST",
+	emlFTUnsuscribe: payload01."EML_FT_UNSUSCRIBE",
+	emlPVUnsuscribe: payload01."EML_PV_UNSUSCRIBE",
+	emlCSUnsuscribe: payload01."EML_CS_UNSUSCRIBE",
+	custPrivFlag: payload01."CUST_PRIV_FLG"
+  } as Object {class: "col735ReplicaCDB.PollResult"})]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <foreach collection="#[vars.PollResults]" doc:name="For Each">
+                    <logger message="#[write(payload) as String]" level="INFO" doc:name="Logger" />
+                </foreach>
+                <set-payload value="#[payload]" mimeType="application/java" />
+                <ee:transform doc:name="Create PollerOutput">
+                    <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                    <ee:variables>
+                        <ee:set-variable variableName="PollerOutput"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  executionDate: now() as String {format: "yyyyMMdd-HH:mm:ss"}
+} as Object {class: "col735ReplicaCDB.PollerOutput"}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+				<scripting:execute doc:name="Execute" doc:id="2a88a826-7707-4a82-b5fb-163f616e3809" engine="Groovy">
+					<scripting:code ><![CDATA[vars.PollerOutput.setPollResults(vars.PollResults);]]></scripting:code>
+				</scripting:execute>
+				<java:invoke doc:name="Invoke" doc:id="e5c9e687-4e11-4a76-b897-003181859a03" instance="#[vars.PollerOutput]" class="col735ReplicaCDB.PollerOutput" method="getTransactionList()" target="GlobalTransactionList"/>
+                <java:invoke doc:name="Invoke" doc:id="cc464781-b0bd-45e5-94d1-919676d9facc" instance="#[vars.PollerOutput]" class="col735ReplicaCDB.PollerOutput" method="getTransactionList()" target="transactionList"/>
+				<java:invoke doc:name="Invoke" doc:id="0ae6e81b-ad6c-407c-8619-6bc3e115196f" instance="#[vars.transactionList]" class="java.util.ArrayList" method="size()" target="sizeOfGetTransactionList"/>
+				<flow-ref name="EnqueueAndUpdateToQ" doc:name="EnqueueAndUpdateToQ" />
+            </when>
+			<otherwise>
+                <logger message="route boh" level="INFO" doc:name="No Route" />
+            </otherwise>
+        </choice>
+
+    </flow>
+
+    <sub-flow name="ReadDB">
+        <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----LOG START----- ${mule.log.expression.entry}" level="INFO" doc:name="Logger" />
+        <db:stored-procedure doc:name="Read Packets" config-ref="CDB_Configuration">
+            <!--Migration INFO: Streaming is enabled by default in Mule 4-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-database#database_streaming-->
+            <db:sql><![CDATA[{ call ${db_replica}.READANDRESERVETRANSACTIONS_v2(
+	:param1,
+    :param2
+  ) }]]></db:sql>
+            <db:parameter-types>
+                <db:parameter-type key="param1" type="NUMERIC" />
+            </db:parameter-types>
+            <db:input-parameters><![CDATA[#[{'param1' : '300'}]]]></db:input-parameters>
+            <db:output-parameters>
+                <db:output-parameter key="param2" customType="CURSOR"/>
+            </db:output-parameters>
+        </db:stored-procedure>
+        <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----LOG Lettura da DB terminata" level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+    <sub-flow name="forEachPolledPacket_flow">
+        <foreach collection="#[vars.PolledPacketList]" counterVariableName="PPcounter" doc:name="For Each Packet">
+            <set-payload value="#[payload]" mimeType="application/java" />
+            <ee:transform doc:name="PolledPacket">
+                <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                <ee:variables>
+                    <ee:set-variable variableName="PolledPacket"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  id: payload.id,
+  packet: payload.packet,
+  packetDate: payload.packetDate,
+  rank: payload.rank
+} as Object {class: "cdbPoller.PolledPacket"}]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <logger message="#[vars.PolledPacket.log]" level="INFO" doc:name="Logger" />
+            <set-variable variableName="TransactionList" value="#[[]]" doc:name="TransactionList" mimeType="application/java" />
+            <set-payload value="#[payload]" mimeType="application/java" />
+            <ee:transform doc:name="newPacket">
+                <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                <ee:variables>
+                    <ee:set-variable variableName="newPacket"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  packetId: payload.id,
+  transactionList: vars.TransactionList
+} as Object {class: "cdbPoller.Packet"}]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref name="loadPacket" doc:name="loadPacket" />
+            <scripting:execute doc:name="Execute" doc:id="195c3bb9-ad1e-41a4-ad1a-fb77704b6efe" engine="Groovy">
+				<scripting:code ><![CDATA[vars.PacketContainer.packetList.add(vars.newPacket);]]></scripting:code>
+			</scripting:execute>
+        </foreach>
+    </sub-flow>
+
+    <sub-flow name="readResultsAndSetUpNew">
+        <logger message="Letti da DB #[sizeOf(vars.PolledPacketList)] packets" level="INFO" doc:name="Logger readResultsAndSetUpNew" />
+        <set-variable variableName="PacketList" value="#[[]]" doc:name="PacketList" mimeType="application/java" />
+        <set-variable variableName="GlobalTransactionList" value="#[[]]" doc:name="GlobalTransactionList" mimeType="application/java" />
+        <set-payload value="#[payload]" mimeType="application/java" />
+        <ee:transform doc:name="newPacketContainer">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  executionDate: now() as String {format: "yyyyMMdd-HH:mm:ss"},
+  packetList: vars.PacketList
+} as Object {class: "cdbPoller.PacketContainer"}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="PacketContainer"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  executionDate: now() as String {format: "yyyyMMdd-HH:mm:ss"},
+  packetList: vars.PacketList
+} as Object {class: "cdbPoller.PacketContainer"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </sub-flow>
+
+    <sub-flow name="EnqueueAndUpdateToQ">
+        <choice doc:name="Choice">
+            <when expression='#[vars.Route == "new" and vars.sizeOfGetTransactionList &gt; 0]'>
+                <try doc:name="Transactional">
+                    <flow-ref name="UpdatePacketTransactionsToQ" doc:name="UpdatePacketTransactionsToQ" />
+					<choice doc:name="Choice">
+                        <when expression='#[vars.Route == "old"]'>
+                            <logger message="Enqueue old" level="INFO" doc:name="Logger" />
+                            <flow-ref name="Enqueue" doc:name="Enqueue" />
+                        </when>
+                        <when expression='#[vars.Route == "new"]'>
+                            <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----LOG Enqueue new" level="INFO" doc:name="Logger" />
+                            <flow-ref name="Enqueue_new" doc:name="Enqueue_new" />
+                        </when>
+						<otherwise>
+							<logger message="boh" level="INFO" doc:name="Logger" />
+                        </otherwise>
+                    </choice>
+                    <error-handler>
+                        <on-error-continue doc:name="Catch Exception Strategy">
+                            <flow-ref name="RevertTransactionsToA" doc:name="RevertTransactionsToA" />
+                        </on-error-continue>
+                    </error-handler>
+                </try>
+            </when>
+            <otherwise>
+                <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----LOG Nessuna transazione da elaborare" level="INFO" doc:name="Logger" />
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="RevertTransactionsToA">
+        <set-variable variableName="OutParameter" value="0" doc:name="Create Out parameter" />
+        <set-variable variableName="OutParam" value="" doc:name="Create Out Param" />
+        <flow-ref name="UpdateA" doc:name="UpdateA" />
+        <scripting:execute engine="Groovy" doc:name="Execute" doc:id="3aa797a2-0d26-4f03-887a-49ccff82617d" >
+			<scripting:code ><![CDATA[vars.OutParameter= vars.OutParam.values().toArray()[0].toString()]]></scripting:code>
+		</scripting:execute>
+		<logger message='"C-CDB001-----Poller (CDB -&gt; Cloud)-----Output: #[vars.OutParameter] per aggiornamento delle #[sizeOf(vars.GlobalTransactionList)] transazioni ad A' level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+    <sub-flow name="Enqueue">
+        <set-payload value="#[vars.PacketContainer]" doc:name="Set Payload" encoding="UTF-8" />
+        <set-payload value="#[payload]" mimeType="application/java" />
+        <ee:transform doc:name="Transform Message Enqueue">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  executionDate: payload.executionDate,
+  packetList: payload.packetList
+} as Object {class: "cdbPoller.PacketContainerOutput"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <ee:transform doc:name="Object to JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0 
+output application/json 
+--- 
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger message="#[payload]" level="INFO" doc:name="Logger" />
+        <flow-ref name="Queue" doc:name="Queue" />
+        <logger message="Fine (old)." level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+    <sub-flow name="Queue">
+		<jms:publish doc:name="Publish" doc:id="156d62d4-7f9e-490f-81a4-faeabae86c5d" config-ref="Active_MQ" destination="${mq.queue}.${environment.prefix}">
+			<reconnect />
+		</jms:publish>
+    </sub-flow>
+
+    <sub-flow name="Enqueue_new">
+		<ee:transform doc:name="Transform Message" doc:id="6728408a-de8e-4c9f-8033-19669b45c14e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.PollerOutput]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger message='C-CDB001-----Poller (CDB -&gt; Cloud)-----LOG Transazioni: #[vars.PollerOutput.getTransactionList()]' level="INFO" doc:name="Logger">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </logger>
+        <logger message="#[payload]" level="INFO" doc:name="Logger" />
+        <flow-ref name="Queue" doc:name="Queue" />
+        <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----LOG END----- ${mule.log.expression.exit} " level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+    <sub-flow name="UpdateQ">
+        <set-payload value="#[payload]" mimeType="application/java" />
+        <set-variable value="${environment.prefix}" doc:name="env" doc:id="38a30a15-e8ac-4b62-ba81-7dc49a26f25b" variableName="env" />
+		<ee:transform doc:name="ObjectList">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  objectList: vars.GlobalTransactionList,
+  env: vars.env
+} as Object {class: "cdbPoller.ObjectList"}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="ObjectList"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  objectList: vars.GlobalTransactionList,
+  env: vars.env
+} as Object {class: "cdbPoller.ObjectList"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----Update di #[sizeOf(vars.GlobalTransactionList)] transazioni" level="INFO" doc:name="Logger" />
+        <db:stored-procedure doc:name="Update all PacketContainer Transactions to Q" target="OutParam" config-ref="CDB_Configuration">
+            <db:sql><![CDATA[{ call ${db_replica}.AGGIORNASTATOTRANSAZIONI_new(
+	:param1,
+    :param2,
+    :param3
+  ) }]]></db:sql>
+            <db:parameter-types>
+                <db:parameter-type key="param1" type="ARRAY" />
+                <db:parameter-type key="param2" type="VARCHAR" />
+            </db:parameter-types>
+            <db:input-parameters><![CDATA[#[{'param1' : vars.ObjectList.oracleSQlArray, 'param2' : 'Q'}]]]></db:input-parameters>
+            <db:output-parameters>
+                <db:output-parameter key="param3" type="INTEGER"/>
+            </db:output-parameters>
+        </db:stored-procedure>
+    </sub-flow>
+
+    <sub-flow name="UpdateA">
+        <set-payload value="#[payload]" mimeType="application/java" />
+        <set-variable value="${environment.prefix}" doc:name="env" doc:id="308f0ae5-ee1f-4948-b65c-e0aaceb5bbc5" variableName="env" />
+		<ee:transform doc:name="ObjectList">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  objectList: vars.GlobalTransactionList,
+  env: vars.env
+} as Object {class: "cdbPoller.ObjectList"}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="ObjectList"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  objectList: vars.GlobalTransactionList,
+  env: vars.env
+} as Object {class: "cdbPoller.ObjectList"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----Update di #[sizeOf(vars.GlobalTransactionList)] transazioni ad A" level="INFO" doc:name="Logger" />
+		<db:stored-procedure doc:name="Update all PacketContainer Transactions to A" config-ref="CDB_Configuration" target="OutParam">
+            <db:sql><![CDATA[{ call ${db_replica}.AGGIORNASTATOTRANSAZIONI_new(
+	:param1,
+    :param2,
+    :param3
+  ) }]]></db:sql>
+            <db:parameter-types>
+                <db:parameter-type key="param1" type="ARRAY" />
+                <db:parameter-type key="param2" type="VARCHAR" />
+            </db:parameter-types>
+            <db:input-parameters><![CDATA[#[{'param1' : vars.ObjectList.oracleSQlArray, 'param2' : 'Q'}]]]></db:input-parameters>
+            <db:output-parameters>
+                <db:output-parameter key="param3" type="INTEGER"/>
+            </db:output-parameters>
+        </db:stored-procedure>
+    </sub-flow>
+
+    <sub-flow name="UpdatePacketTransactionsToQ">
+        <set-variable variableName="OutParameter" value="0" doc:name="Create Out parameter" />
+        <set-variable variableName="OutParam" value="" doc:name="Create Out Param" />
+        <flow-ref name="UpdateQ" doc:name="UpdateQ" />
+        <ee:transform doc:name="Transform Message" doc:id="96b559ae-f628-44f3-93e0-deda2f8817ef" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="OutParameter" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.OutParam.param3]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger message="C-CDB001-----Poller (CDB -&gt; Cloud)-----Output: #[vars.OutParameter] per aggiornamento delle #[sizeOf(vars.GlobalTransactionList)] transazioni a Q" level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+    <sub-flow name="loadPacket">
+        <foreach collection="#[vars.PolledPacket.transactions]" counterVariableName="PPcounter" doc:name="For Each transaction in PolledPacket.transactions">
+            <set-variable variableName="#[[]]" value="" doc:name="CustomerSedeList" mimeType="application/java" />
+            <set-payload value="#[payload]" mimeType="application/java" />
+            <ee:transform doc:name="newTransaction">
+                <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                <ee:variables>
+                    <ee:set-variable variableName="Transaction"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  transactionId: payload,
+  customerSedeList: vars.CustomerSedeList
+} as Object {class: "cdbPoller.Transaction"}]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref name="readCustomerSede" doc:name="readCustomerSede" />
+            <scripting:execute doc:name="Execute" doc:id="de7d2b3a-7381-4bcd-8eb5-bf46a6d47078" engine="Groovy">
+				<scripting:code ><![CDATA[vars.Transaction.evento=vars.Transaction.customerSedeList[0].evento;
+vars.Transaction.source="CDBR";]]></scripting:code>
+			</scripting:execute>
+            <scripting:execute doc:name="Execute" doc:id="ce9ac92a-f30e-4e2b-a7c2-eca3faa77ae4" engine="Groovy">
+				<scripting:code ><![CDATA[vars.newPacket.transactionList.add(vars.Transaction);]]></scripting:code>
+			</scripting:execute>
+			<scripting:execute doc:name="Execute" doc:id="52ef1eda-5c6e-42eb-b8b8-431377f86c65" engine="Groovy">
+				<scripting:code ><![CDATA[vars.GlobalTransactionList.add(vars.Transaction.transactionId)]]></scripting:code>
+			</scripting:execute>
+        </foreach>
+    </sub-flow>
+
+    <sub-flow name="readCustomerSede">
+        <db:select doc:name="Extract CustomerSede" config-ref="CDB_Configuration">
+            <db:sql><![CDATA[SELECT     transactionid, 	customerid, 	customerid_old,     codicesede,     codiceSede_old,     evento,     ordcust,     ordsede,     datatransazione,     stato,     ragionesociale,     annofatturato,     annofondazione,     annoriferimentodipendenti,     fatturato,     citta,     nazionesede,     codiceprovincia,     indirizzo,     buonoordine,     cap,     codicecategoriamassimaspesa,     categoriamassimaspesa,     cellula,     classificazionepmi,     areaelenco,     codicecategoriaistat,     codicecategoriamerceologica,     codicecomune,     statocustomer,     codicefiscale,     codicefrazione,     ipa,     codprovinciarea,     numerorea,     statosede,     cognome,     comune,     coordx,     coordy,     coordinatemanuali,     datofiscaleesterocertificato,     denominazionealternativa,     categoriaistat,     categoriamerceologica,     dug,     emailarricchimento,     emailarricchimentoid,     emailbozze,     emailbozzeid,     emailcommercialeiol,     emailcommercialeiolid,     emailfatturazione,     emailfatturazioneid,     emailpostvendita,     emailpostvenditaid,     emailarricchimentopecflag,     emailbozzepecflag,     emailcommercialeiolpecflag,     emailfatturazionepecflag,     emailpostvenditapecflag,     entepubblicoflag,     codicefiscalefatturazione,     fattelettronicaobbligatoria,     frazione,     idindirizzo,     infotoponimo,     insegna,     mercatoaggregato,     industry,     codicenazione,     descnazione,     potenzialenip,     nome,     noterecapitofattura,     civico,     numerodipendenti,     opec,     opecconsegnabile,     partitaiva,     profcoordinategeografiche,     provincia,     customercessatoriattivabile,     sedecessatariattivabile,     sedeprimariaflag,     sottoareamercato,     sottoclassedipendenti,     sottoclassefatturato,     statoopeccommattualiz,     tipomercato,     telefono1id,     telefono1,     telefono1primario,     tipotelefono1,     telefono2id,     telefono2,     telefono2primario,     tipotelefono2,     telefono3id,     telefono3,     telefono3primario,     tipotelefono3,     telefono4id,     telefono4,     telefono4primario,     tipotelefono4,     telefono5id,     telefono5,     telefono5primario,     tipotelefono5,     telefono6id,     telefono6,     telefono6primario,     tipotelefono6,     telefono7id,     telefono7,     telefono7primario,     tipotelefono7,     telefono8id,     telefono8,     telefono8primario,     tipotelefono8,     formagiuridica,     tiposocgiuridica,     toponimo,     ultimaposizioneamministrativa,     tiposocieta,     urlfanpageid,     urlfanpage,     urlistituzionaleid,     urlistituzionale,     urlpaginebiancheid,     urlpaginebianche,     urlpaginegialleid,     urlpaginegialle,     ClienteSpecialeFlg,     priorita FROM     vcd0b_rp_sf_sedecust where transactionid = #[vars.Transaction.transactionId] and stato = 'P' order by ordcust, ordsede]]></db:sql>
+        </db:select>
+        <set-payload value="#[payload]" mimeType="application/java" />
+        <ee:transform doc:name="Cast to List of CustomerSede">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:variables>
+                <ee:set-variable variableName="CustomerSedeList"><![CDATA[%dw 2.0
+output application/java  
+---
+payload map (payload01, indexOfPayload01) -> {
+    annoFatturato: payload01.ANNOFATTURATO,
+    annoFondazione: payload01.ANNOFONDAZIONE,
+    annoRiferimentoDipendenti: payload01.ANNORIFERIMENTODIPENDENTI,
+    areaElenco: payload01.AREAELENCO,
+    buonoOrdine: payload01.BUONOORDINE,
+    cap: payload01.CAP,
+    categoriaIstat: payload01.CATEGORIAISTAT,
+    categoriaMassimaMpesa: payload01.CATEGORIAMASSIMASPESA,
+    categoriaMerceologica: payload01.CATEGORIAMERCEOLOGICA,
+    cellula: payload01.CELLULA,
+    citta: payload01.CITTA,
+    civico: payload01.CIVICO,
+    classificazionePMI: payload01.CLASSIFICAZIONEPMI,
+    ClienteSpecialeFlg: payload01.CLIENTESPECIALEFLG,
+    codProvinciaRea: payload01.CODPROVINCIAREA,
+    codiceCategoriaIstat: payload01.CODICECATEGORIAISTAT,
+    codiceCategoriaMassimaSpesa: payload01.CODICECATEGORIAMASSIMASPESA,
+    codiceCategoriaMerceologica: payload01.CODICECATEGORIAMERCEOLOGICA,
+    codiceComune: payload01.CODICECOMUNE,
+    codiceFiscale: payload01.CODICEFISCALE,
+    codiceFiscaleFatturazione: payload01.CODICEFISCALEFATTURAZIONE,
+    codiceFrazione: payload01.CODICEFRAZIONE,
+    codiceNazione: payload01.CODICENAZIONE,
+    descNazione: payload01.DESCNAZIONE,
+    codiceProvincia: payload01.CODICEPROVINCIA,
+    codiceSede: payload01.CODICESEDE,
+    codiceSedeOld: payload01."CODICESEDE_OLD",
+    cognome: payload01.COGNOME,
+    comune: payload01.COMUNE,
+    coordX: payload01.COORDX,
+    coordY: payload01.COORDY,
+    coordinateManuali: payload01.COORDINATEMANUALI,
+    customerCessatoRiattivabile: payload01.CUSTOMERCESSATORIATTIVABILE,
+    customerId: payload01.CUSTOMERID,
+    customerIdOld: payload01."CUSTOMERID_OLD",
+    dataTransazione: payload01.DATATRANSAZIONE,
+    datoFiscaleEsteroCertificato: payload01.DATOFISCALEESTEROCERTIFICATO,
+    denominazioneaAlternativa: payload01.DENOMINAZIONEALTERNATIVA,
+    dug: payload01.DUG,
+    emailArricchimento: payload01.EMAILARRICCHIMENTO,
+    emailArricchimentoId: payload01.EMAILARRICCHIMENTOID,
+    emailArricchimentoPecFlag: payload01.EMAILARRICCHIMENTOPECFLAG,
+    emailBozze: payload01.EMAILBOZZE,
+    emailBozzeId: payload01.EMAILBOZZEID,
+    emailBozzepecflag: payload01.EMAILBOZZEPECFLAG,
+    emailCommercialeIol: payload01.EMAILCOMMERCIALEIOL,
+    emailCommercialeIolId: payload01.EMAILCOMMERCIALEIOLID,
+    emailCommercialeiolPecFlag: payload01.EMAILCOMMERCIALEIOLPECFLAG,
+    emailFatturazione: payload01.EMAILFATTURAZIONE,
+    emailFatturazioneId: payload01.EMAILFATTURAZIONEID,
+    emailFatturazionePecFlag: payload01.EMAILFATTURAZIONEPECFLAG,
+    emailPostvendita: payload01.EMAILPOSTVENDITA,
+    emailPostvenditaId: payload01.EMAILPOSTVENDITAID,
+    emailPostvenditaPecFlag: payload01.EMAILPOSTVENDITAPECFLAG,
+    entePubblicoFlag: payload01.ENTEPUBBLICOFLAG,
+    evento: payload01.EVENTO,
+    fattelEttronicaObbligatoria: payload01.FATTELETTRONICAOBBLIGATORIA,
+    fatturato: payload01.FATTURATO,
+    formaGiuridica: payload01.FORMAGIURIDICA,
+    frazione: payload01.FRAZIONE,
+    idIndirizzo: payload01.IDINDIRIZZO,
+    indirizzo: payload01.INDIRIZZO,
+    industry: payload01.INDUSTRY,
+    infoToponimo: payload01.INFOTOPONIMO,
+    insegna: payload01.INSEGNA,
+    ipa: payload01.IPA,
+    mercatoAggregato: payload01.MERCATOAGGREGATO,
+    nazioneSede: payload01.NAZIONESEDE,
+    nome: payload01.NOME,
+    noteRecapitoFattura: payload01.NOTERECAPITOFATTURA,
+    numeroDipendenti: payload01.NUMERODIPENDENTI,
+    numeroRea: payload01.NUMEROREA,
+    opec: payload01.OPEC,
+    opecConsegnabile: payload01.OPECCONSEGNABILE,
+    ordCust: payload01.ORDCUST,
+    ordSede: payload01.ORDSEDE,
+    owner: "dummy",
+    partitaIva: payload01.PARTITAIVA,
+    potenzialeNIP: payload01.POTENZIALENIP,
+    profCoordinateGeografiche: payload01.PROFCOORDINATEGEOGRAFICHE,
+    provincia: payload01.PROVINCIA,
+    ragioneSociale: payload01.RAGIONESOCIALE,
+    sedeCessataRiattivabile: payload01.SEDECESSATARIATTIVABILE,
+    sedePrimariaFlag: payload01.SEDEPRIMARIAFLAG,
+    sottoAreaMercato: payload01.SOTTOAREAMERCATO,
+    sottocClasseDipendenti: payload01.SOTTOCLASSEDIPENDENTI,
+    sottocClasseFatturato: payload01.SOTTOCLASSEFATTURATO,
+    stato: payload01.STATO,
+    statoCustomer: payload01.STATOCUSTOMER,
+    statoOpecCommAttualiz: payload01.STATOOPECCOMMATTUALIZ,
+    statoSede: payload01.STATOSEDE,
+    telefono1: payload01.TELEFONO1,
+    telefono1Id: payload01.TELEFONO1ID,
+    telefono1Primario: payload01.TELEFONO1PRIMARIO,
+    telefono2: payload01.TELEFONO2,
+    telefono2Id: payload01.TELEFONO2ID,
+    telefono2Primario: payload01.TELEFONO2PRIMARIO,
+    telefono3: payload01.TELEFONO3,
+    telefono3Id: payload01.TELEFONO3ID,
+    telefono3Primario: payload01.TELEFONO3PRIMARIO,
+    telefono4: payload01.TELEFONO4,
+    telefono4Id: payload01.TELEFONO4ID,
+    telefono4Primario: payload01.TELEFONO4PRIMARIO,
+    telefono5: payload01.TELEFONO5,
+    telefono5Id: payload01.TELEFONO5ID,
+    telefono5Primario: payload01.TELEFONO5PRIMARIO,
+    telefono6: payload01.TELEFONO6,
+    telefono6Id: payload01.TELEFONO6ID,
+    telefono6Primario: payload01.TELEFONO6PRIMARIO,
+    telefono7: payload01.TELEFONO7,
+    telefono7Id: payload01.TELEFONO7ID,
+    telefono7Primario: payload01.TELEFONO7PRIMARIO,
+    telefono8: payload01.TELEFONO8,
+    telefono8Id: payload01.TELEFONO8ID,
+    telefono8Primario: payload01.TELEFONO8PRIMARIO,
+    tipoMercato: payload01.TIPOMERCATO,
+    tipoSocGiuridica: payload01.TIPOSOCGIURIDICA,
+    tipoSocieta: payload01.TIPOSOCIETA,
+    tipoTelefono1: payload01.TIPOTELEFONO1,
+    tipoTelefono2: payload01.TIPOTELEFONO2,
+    tipoTelefono3: payload01.TIPOTELEFONO3,
+    tipoTelefono4: payload01.TIPOTELEFONO4,
+    tipoTelefono5: payload01.TIPOTELEFONO5,
+    tipoTelefono6: payload01.TIPOTELEFONO6,
+    tipoTelefono7: payload01.TIPOTELEFONO7,
+    tipoTelefono8: payload01.TIPOTELEFONO8,
+    toponimo: payload01.TOPONIMO,
+    transactionId: payload01.TRANSACTIONID,
+    ultimaPosizioneAmministrativa: payload01.ULTIMAPOSIZIONEAMMINISTRATIVA,
+    urlFanpage: payload01.URLFANPAGE,
+    urlFanpageId: payload01.URLFANPAGEID,
+    urlIstituzionale: payload01.URLISTITUZIONALE,
+    urlIstituzionaleId: payload01.URLISTITUZIONALEID,
+    urlPagineBianche: payload01.URLPAGINEBIANCHE,
+    urlPagineBiancheId: payload01.URLPAGINEBIANCHEID,
+    urlPagineGialle: payload01.URLPAGINEGIALLE,
+    urlPagineGialleId: payload01.URLPAGINEGIALLEID,
+    priorita: payload01.PRIORITA
+  } as Object {class: "cdbPoller.CustomerSede"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <scripting:execute doc:name="Execute" doc:id="a1eb07a1-f373-42b2-ad0d-2db00bfbddca" engine="Groovy">
+			<scripting:code ><![CDATA[vars.Transaction.customerSedeList = vars.CustomerSedeList;]]></scripting:code>
+		</scripting:execute>
+    </sub-flow>
+
+</mule>

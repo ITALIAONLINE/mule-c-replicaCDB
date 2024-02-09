@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+
+    <!--Migration WARN: consoleEnabled property do not exist in Mule 4.-->
+    <!--<apikit:config xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" name="col_735_response_back_sf_oncloud-config" raml="col_735_response_back_sf_oncloud.raml" consoleEnabled="false" doc:name="Router" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />-->
+    <apikit:config name="col_735_response_back_sf_oncloud-config" raml="col_735_response_back_sf_oncloud.raml" doc:name="Router" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+
+    <http:listener-config name="HTTP_Listener_Configuration_2" doc:name="HTTP Listener Configuration">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+
+    <salesforce:sfdc-config name="Salesforce__OAuth_2_0_Username_Password_PE" doc:name="Salesforce Config" doc:id="f5f92940-a075-4236-93b4-12b679d09168" >
+		<salesforce:oauth-user-pass-connection consumerKey="${salesForce.ConsumerKey}" consumerSecret="${salesForce.ConsumerSecret}" username="${salesForce.user.primary}" password="${salesForce.pwd}" securityToken="${salesForce.token.primary}" tokenEndpoint="${salesForce.TokenEndpoint}" >
+			<reconnection >
+				<reconnect frequency="${salesForce.reconnection.frequency}" count="${salesForce.reconnection.attempts}"/>
+			</reconnection>
+		</salesforce:oauth-user-pass-connection>
+	</salesforce:sfdc-config>
+
+    <flow name="col_735_response_back_sf_oncloudFlow" maxConcurrency="1">
+        <!--Migration INFO: The 'flow' element no longer has a 'processingStrategy' attribute.-->
+        <!--    For more information refer to:-->
+        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine-->
+		<salesforce:subscribe-channel-listener streamingChannel="/event/IOL_RestResult__e" doc:name="Subscribe channel listener" doc:id="120b1747-b330-4766-8607-f9e392a52fb3" config-ref="Salesforce__OAuth_2_0_Username_Password_PE"/>
+		<set-variable value="#[correlationId]" doc:name="TransactionId" doc:id="6a9e30c4-8c9e-4440-b36b-49aaa7c60774" variableName="TransactionId"/>
+		<logger level="INFO" doc:name="Logger" doc:id="955d4649-0e9d-4cdc-8801-05e0b3584423" message='REPLAY ID --&gt; #[payload.data.event.replayId]'/>
+
+        <ee:transform doc:name="Object to JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0 
+output application/json 
+--- 
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <logger message="C-CDB001 ONCLOUD-----PLATFORM_EVENT --- Time: now() as LocalDateTime {format: &quot;yyyy-MM-dd'T'HH:mm:ss.SSS'Z'&quot;} --- PAYLOAD: --- #[payload]" level="INFO" doc:name="Logger">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </logger>
+		<ee:transform doc:name="Transform Message" doc:id="e9d50cbc-d305-4776-b865-5e1c00c50db1">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json  
+---
+{
+  Source: "platformEvent",
+  replayId: payload.data.event.replayId,
+  result: payload.data.payload.results__c,
+  esito: payload.data.payload.esito__c
+}]]></ee:set-payload>
+            </ee:message>
+			<ee:variables >
+			</ee:variables>
+        </ee:transform>
+
+        <!-- 
+        <message-properties-transformer scope="invocation" doc:name="Message Properties Log">
+            <add-message-property key="TransactionID" value="#[json:result]"/>
+            <add-message-property key="inputPayload" value="#[''+payload]"/>
+        </message-properties-transformer>
+
+        <async doc:name="Async">
+            <dw:transform-message doc:name="PrepareInputForFlowLog">
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+-
+{ 
+   TransactionId: "",
+   LogLevel: "INFO",
+   LogMessage: "Invio platform-event IOL_RestResult__e",
+   FlowName: "col_735_response_back_sf_oncloud",
+   SystemProducer: "Salesforce",
+   SystemConsumer: "MuleSoft",
+   Creation_Date: now as :string {format: "yyyy-MM-dd HH:mm:ss.SSS"},
+   PayloadType: "JSON",
+   Payload: flowVars.inputPayload,
+   ExceptionMessage: "Nessun Errore",
+   ErrorType: "Nessun Errore",
+   ErrorCode: "00",
+   ErrorMessage: "Nessun Errore"
+}
+ ]]></dw:set-payload>
+            </dw:transform-message>
+            <flow-ref name="FlowLogSender" doc:name="FlowLogSender"/>
+        </async>
+ -->
+
+        <jms:publish doc:name="Publish" doc:id="99d5658b-10a9-4774-b62f-80e844f41655" config-ref="Active_MQ" destination="${mq.queue.back}.${environment.prefix}">
+			<jms:message >
+				<jms:properties ><![CDATA[#[{
+	TransactionId: vars.TransactionId
+}]]]></jms:properties>
+			</jms:message>
+		</jms:publish>
+		<logger message=" C-CDB001 ONCLOUD-----PLATFORM_EVENT-----LOG END-----" level="INFO" doc:name="Logger" />
+
+        <error-handler>
+            <on-error-continue doc:name="Catch Exception Strategy">
+
+                <ee:transform doc:name="Transform Message" doc:id="2b9fa345-a2c0-4f2d-b6f5-42b31bb0fa10" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="exceptionMessage" ><![CDATA[%dw 2.0
+output application/java
+---
+error.description]]></ee:set-variable>
+						<ee:set-variable variableName="exceptionCode" ><![CDATA[%dw 2.0
+output application/java
+---
+"-1"]]></ee:set-variable>
+						<ee:set-variable variableName="flowThrowerException" ><![CDATA[%dw 2.0
+output application/java
+---
+error.detailedDescription]]></ee:set-variable>
+						<ee:set-variable variableName="exceptionType" ><![CDATA[%dw 2.0
+output application/java
+---
+error.errorType.asString]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+                <ee:transform doc:name="PREPARE FLOW LOG SENDER">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  TransactionId: vars.TransactionId,
+  LogLevel: "ERROR",
+  LogMessage: "Errore nel flusso CDB-REPLICA Response BACK SF onCloud",
+  FlowName: "CDB-REPLICA/col735",
+  SystemProducer: "SF",
+  SystemConsumer: "CDB",
+  "Creation_Date": now() as String {format: "yyyy-MM-dd HH:mm:ss.SSS"},
+  PayloadType: "PE",
+  Payload: payload,
+  ExceptionMessage: 
+    if (not vars.exceptionMessage == null)
+      vars.exceptionMessage[0 to 3999]
+    else
+      "Un errore generico si è verificato su Mule",
+  ErrorType: 
+    if (not vars.exceptionType == null)
+      vars.exceptionType[0 to 199]
+    else
+      "Errore generico",
+  ErrorCode: "-1",
+  ErrorMessage: 
+    if (not vars.flowThrowerException == null)
+      vars.flowThrowerException[0 to 3999]
+    else
+      "Un errore generico si è verificato su Mule"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <logger message="CDB-REPLICA-----LOG ERROR----- ${mule.log.expression.error}" level="INFO" doc:name="LoggerError" />
+                <flow-ref name="FlowLogSender" doc:name="FlowLogSender" />
+            </on-error-continue>
+        </error-handler>
+
+    </flow>
+
+</mule>

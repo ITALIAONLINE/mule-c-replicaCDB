@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">col_735_response_back_sf_oncloud.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">consoleEnabled property do not exist in Mule 4.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">2</span>&nbsp;
+                    Column: <span class="text-italic text-normal">1,458</span>
+                </h4>
+                <br>
+                <pre>&lt;mule xsi:schemaLocation=&quot;http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd   http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd     http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd   http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd&quot;&gt;
+    &lt;apikit:config name=&quot;col_735_response_back_sf_oncloud-config&quot; raml=&quot;col_735_response_back_sf_oncloud.raml&quot; consoleEnabled=&quot;false&quot; doc:name=&quot;Router&quot; outboundHeadersMapName=&quot;outboundHeaders&quot; httpStatusVarName=&quot;httpStatus&quot; /&gt;
+    &lt;sfdc:config-oauth-user-pass name=&quot;Salesforce__OAuth_2_0_Username_Password_PE&quot; consumerKey=&quot;${salesForce.ConsumerKey}&quot; consumerSecret=&quot;****&quot; username=&quot;${salesForce.user.primary}&quot; password=&quot;****&quot; securityToken=&quot;${salesForce.token.primary}&quot; apiVersion=&quot;${salesForce.Api.version}&quot; doc:name=&quot;Salesforce: OAuth 2.0 Username-Password&quot; tokenEndpoint=&quot;${salesForce.TokenEndpoint}&quot; fetchAllApexRestMetadata=&quot;true&quot; fetchAllApexSoapMetadata=&quot;true&quot; disableSessionInvalidation=&quot;true&quot;&gt;
+        &lt;!--Migration ERROR: The migration of &apos;sfdc&apos; is not supported.--&gt;
+        &lt;!--    For more information refer to:--&gt;
+        &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors--&gt;
+        &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool.adoc#unsupported_connectors--&gt;
+        &lt;reconnect frequency=&quot;10000&quot; count=&quot;100&quot; /&gt;
+    &lt;/sfdc:config-oauth-user-pass&gt;
+    &lt;os:object-store name=&quot;ObjectStore__Connector&quot; doc:name=&quot;ObjectStore: Connector&quot; persistent=&quot;false&quot;&gt;
+        &lt;!--Migration INFO: In Mule 4, you no longer need to create a Spring bean to declare an Object Store.--&gt;
+        &lt;!--    For more information refer to:--&gt;
+        &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-objectstore#custom-object-store--&gt;
+    &lt;/os:object-store&gt;
+    &lt;http:listener-config name=&quot;HTTP_Listener_Configuration_2&quot; doc:name=&quot;HTTP Listener Configuration&quot;&gt;
+        &lt;http:listener-connection host=&quot;0.0.0.0&quot; port=&quot;8081&quot; /&gt;
+    &lt;/http:listener-config&gt;
+    &lt;flow name=&quot;testobjstorecloudhubFlow2&quot;&gt;
+        &lt;http:listener config-ref=&quot;HTTP_Listener_Configuration_2&quot; path=&quot;/retrieve&quot; doc:name=&quot;HTTP&quot; migration:isMessageSource=&quot;true&quot;&gt;
+            &lt;http:response statusCode=&quot;#[migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]&quot;&gt;
+                &lt;!--Migration WARN: Avoid using an outbound property to determine the status code.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+                &lt;http:headers&gt;#[migration::HttpListener::httpListenerResponseHeaders(vars)]&lt;/http:headers&gt;
+            &lt;/http:response&gt;
+            &lt;http:error-response statusCode=&quot;#[vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]&quot;&gt;
+                &lt;!--Migration WARN: Avoid using an outbound property to determine the status code.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+                &lt;http:headers&gt;#[migration::HttpListener::httpListenerResponseHeaders(vars)]&lt;/http:headers&gt;
+            &lt;/http:error-response&gt;
+        &lt;/http:listener&gt;
+        &lt;compatibility:attributes-to-inbound-properties&gt;
+            &lt;!--Migration WARN: Expressions that query &apos;inboundProperties&apos; from the message should instead query the message &apos;attributes&apos;. Remove this component if there are no uses of &apos;inboundProperties&apos; in expressions or components that rely on &apos;inboundProperties&apos; (such as &apos;copy-properties&apos;).--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties--&gt;
+        &lt;/compatibility:attributes-to-inbound-properties&gt;
+        &lt;logger message=&quot;#[&amp;quot;REPLAYID TRUE $(mel:app.registry.&apos;_muleObjectStoreManager&apos;.getUserObjectStore(&apos;ReplyId_Partition&apos;,&apos;true&apos;).retrieve(&apos;new_replay_id&apos;))&amp;quot;]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+        &lt;/logger&gt;
+        &lt;logger message=&quot;#[&amp;quot;REPLAYID $(mel:app.registry.&apos;_muleObjectStoreManager&apos;.getObjectStore(&apos;ReplyId_Partition&apos;).retrieve(&apos;new_replay_id&apos;))&amp;quot;]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+        &lt;/logger&gt;
+        &lt;os:retrieve objectStore=&quot;ObjectStore__Connector&quot; key=&quot;new_replay_id&quot; doc:name=&quot;ObjectStore&quot; /&gt;
+        &lt;compatibility:outbound-properties-to-var&gt;
+            &lt;!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as &apos;method&apos;) of the operation or listener that accepts the expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+        &lt;/compatibility:outbound-properties-to-var&gt;
+    &lt;/flow&gt;
+    &lt;flow name=&quot;testobjstorecloudhubFlow1&quot;&gt;
+        &lt;http:listener config-ref=&quot;HTTP_Listener_Configuration_2&quot; path=&quot;/&quot; doc:name=&quot;HTTP&quot; migration:isMessageSource=&quot;true&quot;&gt;
+            &lt;http:response statusCode=&quot;#[migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]&quot;&gt;
+                &lt;!--Migration WARN: Avoid using an outbound property to determine the status code.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+                &lt;http:headers&gt;#[migration::HttpListener::httpListenerResponseHeaders(vars)]&lt;/http:headers&gt;
+            &lt;/http:response&gt;
+            &lt;http:error-response statusCode=&quot;#[vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]&quot;&gt;
+                &lt;!--Migration WARN: Avoid using an outbound property to determine the status code.--&gt;
+                &lt;!--    For more information refer to:--&gt;
+                &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+                &lt;http:headers&gt;#[migration::HttpListener::httpListenerResponseHeaders(vars)]&lt;/http:headers&gt;
+            &lt;/http:error-response&gt;
+        &lt;/http:listener&gt;
+        &lt;compatibility:attributes-to-inbound-properties&gt;
+            &lt;!--Migration WARN: Expressions that query &apos;inboundProperties&apos; from the message should instead query the message &apos;attributes&apos;. Remove this component if there are no uses of &apos;inboundProperties&apos; in expressions or components that rely on &apos;inboundProperties&apos; (such as &apos;copy-properties&apos;).--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties--&gt;
+        &lt;/compatibility:attributes-to-inbound-properties&gt;
+        &lt;os:store objectStore=&quot;ObjectStore__Connector&quot; key=&quot;new_replay_id&quot; doc:name=&quot;ObjectStore&quot;&gt;
+            &lt;os:value&gt;&lt;![CDATA[#[payload]]]&gt;&lt;/os:value&gt;
+        &lt;/os:store&gt;
+        &lt;compatibility:outbound-properties-to-var&gt;
+            &lt;!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as &apos;method&apos;) of the operation or listener that accepts the expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+        &lt;/compatibility:outbound-properties-to-var&gt;
+    &lt;/flow&gt;
+    &lt;sub-flow name=&quot;backup&quot;&gt;
+        &lt;logger message=&quot;#[&amp;quot;PAYLOAD INIZIALE =&amp;gt; $(payload) AND $(mel:app.registry.&apos;_muleObjectStoreManager&apos;.getObjectStore(&apos;ReplyId_Partition&apos;).retrieve(&apos;new_replay_id&apos;))&amp;quot;]&quot; level=&quot;INFO&quot; doc:name=&quot;Copy_of_Logger&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+        &lt;/logger&gt;
+        &lt;logger message=&quot;#[&amp;quot; C-CDB001 ONCLOUD-----PLATFORM_EVENT-----LOG START-----WITH REPLAYID : $(mel:app.registry.&apos;_muleObjectStoreManager&apos;.getUserObjectStore(&apos;ReplyId_Partition&apos;,&apos;true&apos;).retrieve(&apos;new_replay_id&apos;))&amp;quot;]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+        &lt;/logger&gt;
+        &lt;logger message=&quot;#[&amp;quot; C-CDB001 ONCLOUD-----PLATFORM_EVENT-----LOG START-----WITH REPLAYID : $(mel:app.registry.&apos;_muleObjectStoreManager&apos;.getObjectStore(&apos;ReplyId_Partition&apos;).retrieve(&apos;new_replay_id&apos;))&amp;quot;]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+        &lt;/logger&gt;
+    &lt;/sub-flow&gt;
+    &lt;flow name=&quot;col_735_response_back_sf_oncloudFlow&quot; initialState=&quot;started&quot; maxConcurrency=&quot;1&quot;&gt;
+        &lt;!--Migration INFO: The &apos;flow&apos; element no longer has a &apos;processingStrategy&apos; attribute.--&gt;
+        &lt;!--    For more information refer to:--&gt;
+        &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine--&gt;
+        &lt;sfdc:subscribe-streaming-channel config-ref=&quot;Salesforce__OAuth_2_0_Username_Password_PE&quot; streamingChannel=&quot;/event/IOL_RestResult__e&quot; doc:name=&quot;Salesforce (Streaming)&quot; doc:description=&quot;#[app.registry.&apos;_muleObjectStoreManager&apos;.getObjectStore(&apos;ReplayId_Partition&apos;).retrieve(&apos;new_replay_id&apos;)]&quot;&gt;
+            &lt;!--Migration ERROR: The migration of &apos;sfdc&apos; is not supported.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool.adoc#unsupported_connectors--&gt;
+        &lt;/sfdc:subscribe-streaming-channel&gt;
+        &lt;compatibility:set-session-variable variableName=&quot;TransactionId&quot; value=&quot;#[correlationId]&quot; doc:name=&quot;TransactionId&quot;&gt;
+            &lt;!--Migration WARN: Instead of using session variables in the flow, use variables.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables--&gt;
+        &lt;/compatibility:set-session-variable&gt;
+        &lt;os:store objectStore=&quot;ObjectStore__Connector&quot; key=&quot;new_replay_id&quot; doc:name=&quot;ObjectStore&quot;&gt;
+            &lt;os:value&gt;&lt;![CDATA[#[payload.event.replayId]]]&gt;&lt;/os:value&gt;
+        &lt;/os:store&gt;
+        &lt;ee:transform doc:name=&quot;Object to JSON&quot;&gt;
+            &lt;ee:message&gt;
+                &lt;ee:set-payload&gt;%dw 2.0 output application/json --- payload&lt;/ee:set-payload&gt;
+            &lt;/ee:message&gt;
+        &lt;/ee:transform&gt;
+        &lt;logger message=&quot;#[&amp;quot; C-CDB001 ONCLOUD-----PLATFORM_EVENT --- Time: $(mel:server.dateTime.format(&apos;dd-MM-YYYY HH:mm:ss:SSS&apos;)) --- PAYLOAD: ---  $(payload)&amp;quot;]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+            &lt;!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions--&gt;
+            &lt;!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4--&gt;
+            &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+        &lt;/logger&gt;
+        &lt;set-payload value=&quot;#[payload]&quot; mimeType=&quot;application/json&quot; /&gt;
+        &lt;ee:transform doc:name=&quot;Transform Message&quot;&gt;
+            &lt;!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.--&gt;
+            &lt;ee:message&gt;
+                &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/json --- { Source: &quot;platformEvent&quot;, replayId: payload.event.replayId, result: payload.payload.&quot;results__c&quot;, esito: payload.payload.&quot;esito__c&quot; }]]&gt;&lt;/ee:set-payload&gt;
+            &lt;/ee:message&gt;
+        &lt;/ee:transform&gt;
+        &lt;!-- 
+        &lt;message-properties-transformer scope=&quot;invocation&quot; doc:name=&quot;Message Properties Log&quot;&gt;
+            &lt;add-message-property key=&quot;TransactionID&quot; value=&quot;#[json:result]&quot;/&gt;
+            &lt;add-message-property key=&quot;inputPayload&quot; value=&quot;#[&apos;&apos;+payload]&quot;/&gt;
+        &lt;/message-properties-transformer&gt;
+
+        &lt;async doc:name=&quot;Async&quot;&gt;
+            &lt;dw:transform-message doc:name=&quot;PrepareInputForFlowLog&quot;&gt;
+                &lt;dw:set-payload&gt;&lt;![CDATA[%dw 1.0
+%output application/java
+-
+{ 
+   TransactionId: &quot;&quot;,
+   LogLevel: &quot;INFO&quot;,
+   LogMessage: &quot;Invio platform-event IOL_RestResult__e&quot;,
+   FlowName: &quot;col_735_response_back_sf_oncloud&quot;,
+   SystemProducer: &quot;Salesforce&quot;,
+   SystemConsumer: &quot;MuleSoft&quot;,
+   Creation_Date: now as :string {format: &quot;yyyy-MM-dd HH:mm:ss.SSS&quot;},
+   PayloadType: &quot;JSON&quot;,
+   Payload: flowVars.inputPayload,
+   ExceptionMessage: &quot;Nessun Errore&quot;,
+   ErrorType: &quot;Nessun Errore&quot;,
+   ErrorCode: &quot;00&quot;,
+   ErrorMessage: &quot;Nessun Errore&quot;
+}
+ ]]&gt;&lt;/dw:set-payload&gt;
+            &lt;/dw:transform-message&gt;
+            &lt;flow-ref name=&quot;FlowLogSender&quot; doc:name=&quot;FlowLogSender&quot;/&gt;
+        &lt;/async&gt;
+ --&gt;
+        &lt;compatibility:outbound-properties-to-var&gt;
+            &lt;!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as &apos;method&apos;) of the operation or listener that accepts the expression.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties--&gt;
+        &lt;/compatibility:outbound-properties-to-var&gt;
+        &lt;jms:publish doc:name=&quot;JMS&quot; sendCorrelationId=&quot;#[migration::JmsTransport::jmsSendCorrelationId(vars)]&quot; config-ref=&quot;Active_MQ&quot; destination=&quot;${mq.queue.back}&quot;&gt;
+            &lt;!--Migration WARN: Avoid using properties to set the JMS properties and headers.--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-jms#SendingMessages--&gt;
+            &lt;jms:message correlationId=&quot;#[migration::JmsTransport::jmsCorrelationId(correlationId, vars)]&quot;&gt;
+                &lt;jms:reply-to destination=&quot;#[migration::JmsTransport::jmsPublishReplyTo(vars)]&quot; /&gt;
+                &lt;jms:properties&gt;#[migration::JmsTransport::jmsPublishProperties(vars)]&lt;/jms:properties&gt;
+            &lt;/jms:message&gt;
+        &lt;/jms:publish&gt;
+        &lt;compatibility:attributes-to-inbound-properties&gt;
+            &lt;!--Migration WARN: Expressions that query &apos;inboundProperties&apos; from the message should instead query the message &apos;attributes&apos;. Remove this component if there are no uses of &apos;inboundProperties&apos; in expressions or components that rely on &apos;inboundProperties&apos; (such as &apos;copy-properties&apos;).--&gt;
+            &lt;!--    For more information refer to:--&gt;
+            &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-mule-message#inbound-properties-are-now-attributes--&gt;
+            &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#inbound_properties--&gt;
+        &lt;/compatibility:attributes-to-inbound-properties&gt;
+        &lt;logger message=&quot; C-CDB001 ONCLOUD-----PLATFORM_EVENT-----LOG END-----&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot; /&gt;
+        &lt;error-handler&gt;
+            &lt;on-error-continue doc:name=&quot;Catch Exception Strategy&quot;&gt;
+                &lt;expression-component doc:name=&quot;SET ERROR INFO&quot;&gt;
+                    &lt;!--Migration ERROR: The migration of &apos;expression-component&apos; is not supported.--&gt;
+                    &lt;!--    For more information refer to:--&gt;
+                    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors--&gt;
+                    &lt;!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool.adoc#unsupported_connectors--&gt;
+                    &lt;![CDATA[flowVars.exceptionMessage = exception.getVerboseMessage().toString(); flowVars.exceptionCode = exception.getExceptionCode().toString(); flowVars.flowThrowerException = exception.getInfo().toString(); flowVars.exceptionType = exception.getInfo().toString();]]&gt;
+                &lt;/expression-component&gt;
+                &lt;ee:transform doc:name=&quot;PREPARE FLOW LOG SENDER&quot;&gt;
+                    &lt;ee:message&gt;
+                        &lt;ee:set-payload&gt;&lt;![CDATA[%dw 2.0 output application/java --- { TransactionId: sessionVars.TransactionId, LogLevel: &quot;ERROR&quot;, LogMessage: &quot;Errore nel flusso CDB-REPLICA Response BACK SF onCloud&quot;, FlowName: &quot;CDB-REPLICA/col735&quot;, SystemProducer: &quot;SF&quot;, SystemConsumer: &quot;CDB&quot;, &quot;Creation_Date&quot;: now() as String {format: &quot;yyyy-MM-dd HH:mm:ss.SSS&quot;}, PayloadType: &quot;PE&quot;, Payload: payload, ExceptionMessage: if (not vars.exceptionMessage == null) vars.exceptionMessage[0 to 3999] else &quot;Un errore generico si è verificato su Mule&quot;, ErrorType: if (not vars.exceptionType == null) vars.exceptionType[0 to 199] else &quot;Errore generico&quot;, ErrorCode: &quot;-1&quot;, ErrorMessage: if (not vars.flowThrowerException == null) vars.flowThrowerException[0 to 3999] else &quot;Un errore generico si è verificato su Mule&quot; }]]&gt;&lt;/ee:set-payload&gt;
+                    &lt;/ee:message&gt;
+                &lt;/ee:transform&gt;
+                &lt;logger message=&quot;CDB-REPLICA-----LOG ERROR-----&quot; level=&quot;INFO&quot; doc:name=&quot;LoggerError&quot; /&gt;
+                &lt;flow-ref name=&quot;FlowLogSender&quot; doc:name=&quot;FlowLogSender&quot; /&gt;
+            &lt;/on-error-continue&gt;
+        &lt;/error-handler&gt;
+    &lt;/flow&gt;
+&lt;/mule&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

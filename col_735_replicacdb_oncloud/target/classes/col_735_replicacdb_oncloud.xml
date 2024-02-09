@@ -1,0 +1,1441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:spring-module="http://www.mulesoft.org/schema/mule/spring" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd http://www.mulesoft.org/schema/mule/spring http://www.mulesoft.org/schema/mule/spring/current/mule-spring.xsd http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+    <configuration-properties file="app-env-${mule.env}.properties" />
+
+    <http:listener-config name="HTTP_Listener_Configuration" doc:name="HTTP Listener Configuration">
+        <http:listener-connection host="localhost" port="7081" />
+    </http:listener-config>
+
+    <ee:object-store-caching-strategy name="Caching_Strategy" doc:name="Caching Strategy" doc:id="ff2bd629-3665-4816-8d5d-d9183617185d" />
+
+    <jms:config name="Active_MQ">
+        <jms:active-mq-connection username="admin" password="admin">
+            <jms:caching-strategy>
+                <jms:no-caching />
+            </jms:caching-strategy>
+            <jms:factory-configuration brokerUrl="${mq.brokerUrl}" maxRedelivery="10" />
+        </jms:active-mq-connection>
+    </jms:config>
+
+    <scripting:config name="Scripting_Config" doc:name="Scripting Config" doc:id="d00b877c-4319-4f59-9bc0-aa3cd003b9ff" />
+	<salesforce:sfdc-config name="Salesforce__OAuth_2_0_Username_Password" doc:name="Salesforce Config" doc:id="00b058bd-4447-4cb4-aa7c-438cd255e8f3" sendNullValues="true">
+		<salesforce:oauth-user-pass-connection consumerKey="${salesForce.ConsumerKey}" consumerSecret="${salesForce.ConsumerSecret}" username="${salesForce.user.primary}" password="${salesForce.pwd}" securityToken="${salesForce.token.primary}" tokenEndpoint="${salesForce.TokenEndpoint}" >
+			<reconnection >
+				<reconnect frequency="${salesForce.reconnection.frequency}" count="${salesForce.reconnection.attempts}"/>
+			</reconnection>
+		</salesforce:oauth-user-pass-connection>
+	</salesforce:sfdc-config>
+
+	<global-property doc:name="Global Property" doc:id="aa392324-3ec3-4a1a-91ed-a9b3a1490b5c" name="mule.env" value="local" />
+	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config" doc:id="079c555b-45c5-4f5f-a0a0-8a55a7267177" />
+	<os:object-store name="OS_Categorie" doc:name="Object store" doc:id="4697d507-93a6-448e-a1f1-8615a79d6650" entryTtl="30" entryTtlUnit="MINUTES" expirationInterval="30" config-ref="ObjectStore_Config" />
+	<flow name="col_735_replicacdb_oncloudFlow" initialState="started" maxConcurrency="1">
+        <!--Migration INFO: The 'flow' element no longer has a 'processingStrategy' attribute.-->
+        <!--    For more information refer to:-->
+        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine-->
+
+        <jms:listener doc:name="On New Message" doc:id="e4ea5a16-1cbb-440f-9f8b-c2da5380c58e" config-ref="Active_MQ" destination="${mq.queue}.${environment.prefix}">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:listener>
+		<flow-ref name="ReadFromQueueAndSplit" doc:name="ReadFromQueueAndSplit" />
+
+    </flow>
+
+    <sub-flow name="col_735_replicacdb_oncloudSub_Flow">
+        <ee:transform doc:name="Get Complex Packets">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+payload.packets map (packet, indexOfPacket) -> {
+    packetId: packet.packetId,
+    transactionList: packet.transactionList map (transactionList, indexOfTransactionList) -> {
+      customerSedeList: transactionList.customerSedeList map (customerSedeList, indexOfCustomerSedeList) -> {
+        annoFatturato: customerSedeList.annoFatturato,
+        annoFondazione: customerSedeList.annoFondazione,
+        annoRiferimentoDipendenti: customerSedeList.annoRiferimentoDipendenti,
+        areaElenco: customerSedeList.areaElenco,
+        buonoOrdine: customerSedeList.buonoOrdine,
+        cap: customerSedeList.cap,
+        categoriaIstat: customerSedeList.categoriaIstat,
+        categoriaMassimaMpesa: customerSedeList.categoriaMassimaMpesa,
+        categoriaMerceologica: customerSedeList.categoriaMerceologica,
+        cellula: customerSedeList.cellula,
+        citta: customerSedeList.citta,
+        civico: customerSedeList.civico,
+        classificazionePMI: customerSedeList.classificazionePMI,
+        codProvinciaRea: customerSedeList.codProvinciaRea,
+        codiceCategoriaIstat: customerSedeList.codiceCategoriaIstat,
+        codiceCategoriaMassimaSpesa: customerSedeList.codiceCategoriaMassimaSpesa,
+        codiceCategoriaMerceologica: customerSedeList.codiceCategoriaMerceologica,
+        codiceComune: customerSedeList.codiceComune,
+        codiceFiscale: customerSedeList.codiceFiscale,
+        codiceFiscaleFatturazione: customerSedeList.codiceFiscaleFatturazione,
+        codiceFrazione: customerSedeList.codiceFrazione,
+        codiceNazione: customerSedeList.codiceNazione,
+        codiceProvincia: customerSedeList.codiceProvincia,
+        codiceSede: customerSedeList.codiceSede,
+        cognome: customerSedeList.cognome,
+        comune: customerSedeList.comune,
+        coordX: customerSedeList.coordX,
+        coordY: customerSedeList.coordY,
+        coordinateManuali: customerSedeList.coordinateManuali,
+        customerCessatoRiattivabile: customerSedeList.customerCessatoRiattivabile,
+        customerId: customerSedeList.customerId,
+        dataTransazione: customerSedeList.dataTransazione,
+        datoFiscaleEsteroCertificato: customerSedeList.datoFiscaleEsteroCertificato,
+        denominazioneaAlternativa: customerSedeList.denominazioneaAlternativa,
+        dug: customerSedeList.dug,
+        emailArricchimento: customerSedeList.emailArricchimento,
+        emailArricchimentoId: customerSedeList.emailArricchimentoId,
+        emailArricchimentoPecFlag: customerSedeList.emailArricchimentoPecFlag,
+        emailBozze: customerSedeList.emailBozze,
+        emailBozzeId: customerSedeList.emailBozzeId,
+        emailBozzepecflag: customerSedeList.emailBozzepecflag,
+        emailCommercialeIol: customerSedeList.emailCommercialeIol,
+        emailCommercialeIolId: customerSedeList.emailCommercialeIolId,
+        emailCommercialeiolPecFlag: customerSedeList.emailCommercialeiolPecFlag,
+        emailFattElettronica: customerSedeList.emailFattElettronica,
+        emailFattElettronicaId: customerSedeList.emailFattElettronicaId,
+        emailFattElettronicaPecFlag: customerSedeList.emailFattElettronicaPecFlag,
+        emailFatturazione: customerSedeList.emailFatturazione,
+        emailFatturazioneId: customerSedeList.emailFatturazioneId,
+        emailFatturazionePecFlag: customerSedeList.emailFatturazionePecFlag,
+        emailPostvendita: customerSedeList.emailPostvendita,
+        emailPostvenditaId: customerSedeList.emailPostvenditaId,
+        emailPostvenditaPecFlag: customerSedeList.emailPostvenditaPecFlag,
+        entePubblicoFlag: customerSedeList.entePubblicoFlag,
+        evento: customerSedeList.evento,
+        fattelEttronicaObbligatoria: customerSedeList.fattelEttronicaObbligatoria,
+        fatturato: customerSedeList.fatturato,
+        formaGiuridica: customerSedeList.formaGiuridica,
+        frazione: customerSedeList.frazione,
+        idIndirizzo: customerSedeList.idIndirizzo,
+        indirizzo: customerSedeList.indirizzo,
+        industry: customerSedeList.industry,
+        infoToponimo: customerSedeList.infoToponimo,
+        insegna: customerSedeList.insegna,
+        ipa: customerSedeList.ipa,
+        mercatoAggregato: customerSedeList.mercatoAggregato,
+        nazioneSede: customerSedeList.nazioneSede,
+        nome: customerSedeList.nome,
+        noteRecapitoFattura: customerSedeList.noteRecapitoFattura,
+        numeroDipendenti: customerSedeList.numeroDipendenti,
+        numeroRea: customerSedeList.numeroRea,
+        opec: customerSedeList.opec,
+        opecConsegnabile: customerSedeList.opecConsegnabile,
+        ordCust: customerSedeList.ordCust,
+        ordSede: customerSedeList.ordSede,
+        owner: customerSedeList.owner,
+        partitaIva: customerSedeList.partitaIva,
+        potenzialeNIP: customerSedeList.potenzialeNIP,
+        profCoordinateGeografiche: customerSedeList.profCoordinateGeografiche,
+        provincia: customerSedeList.provincia,
+        ragioneSociale: customerSedeList.ragioneSociale,
+        sedeCessataRiattivabile: customerSedeList.sedeCessataRiattivabile,
+        sedePrimariaFlag: customerSedeList.sedePrimariaFlag,
+        sottoAreaMercato: customerSedeList.sottoAreaMercato,
+        sottocClasseDipendenti: customerSedeList.sottocClasseDipendenti,
+        sottocClasseFatturato: customerSedeList.sottocClasseFatturato,
+        stato: customerSedeList.stato,
+        statoCustomer: customerSedeList.statoCustomer,
+        statoOpecCommAttualiz: customerSedeList.statoOpecCommAttualiz,
+        statoSede: customerSedeList.statoSede,
+        telefono1: customerSedeList.telefono1,
+        telefono1Id: customerSedeList.telefono1Id,
+        telefono1Primario: customerSedeList.telefono1Primario,
+        telefono2: customerSedeList.telefono2,
+        telefono2Id: customerSedeList.telefono2Id,
+        telefono2Primario: customerSedeList.telefono2Primario,
+        telefono3: customerSedeList.telefono3,
+        telefono3Id: customerSedeList.telefono3Id,
+        telefono3Primario: customerSedeList.telefono3Primario,
+        telefono4: customerSedeList.telefono4,
+        telefono4Id: customerSedeList.telefono4Id,
+        telefono4Primario: customerSedeList.telefono4Primario,
+        telefono5: customerSedeList.telefono5,
+        telefono5Id: customerSedeList.telefono5Id,
+        telefono5Primario: customerSedeList.telefono5Primario,
+        telefono6: customerSedeList.telefono6,
+        telefono6Id: customerSedeList.telefono6Id,
+        telefono6Primario: customerSedeList.telefono6Primario,
+        telefono7: customerSedeList.telefono7,
+        telefono7Id: customerSedeList.telefono7Id,
+        telefono7Primario: customerSedeList.telefono7Primario,
+        telefono8: customerSedeList.telefono8,
+        telefono8Id: customerSedeList.telefono8Id,
+        telefono8Primario: customerSedeList.telefono8Primario,
+        tipoMercato: customerSedeList.tipoMercato,
+        tipoSocGiuridica: customerSedeList.tipoSocGiuridica,
+        tipoSocieta: customerSedeList.tipoSocieta,
+        tipoTelefono1: customerSedeList.tipoTelefono1,
+        tipoTelefono2: customerSedeList.tipoTelefono2,
+        tipoTelefono3: customerSedeList.tipoTelefono3,
+        tipoTelefono4: customerSedeList.tipoTelefono4,
+        tipoTelefono5: customerSedeList.tipoTelefono5,
+        tipoTelefono6: customerSedeList.tipoTelefono6,
+        tipoTelefono7: customerSedeList.tipoTelefono7,
+        tipoTelefono8: customerSedeList.tipoTelefono8,
+        toponimo: customerSedeList.toponimo,
+        transactionId: customerSedeList.transactionId,
+        ultimaPosizioneAmministrativa: customerSedeList.ultimaPosizioneAmministrativa,
+        urlFanpage: customerSedeList.urlFanpage,
+        urlFanpageId: customerSedeList.urlFanpageId,
+        urlIstituzionale: customerSedeList.urlIstituzionale,
+        urlIstituzionaleId: customerSedeList.urlIstituzionaleId,
+        urlPagineBianche: customerSedeList.urlPagineBianche,
+        urlPagineBiancheId: customerSedeList.urlPagineBiancheId,
+        urlPagineGialle: customerSedeList.urlPagineGialle,
+        urlPagineGialleId: customerSedeList.urlPagineGialleId
+      },
+      evento: transactionList.evento,
+      fonte: transactionList.fonte,
+      transactionId: transactionList.transactionId
+    }
+  } as Object {class: "cdbPoller.Packet"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger message='Size ComplexPackets: #[sizeOf(payload)]' level="INFO" doc:name="ComplexPackets Size" />
+    </sub-flow>
+
+    <sub-flow name="logApexInput" doc:id="dc1994f8-5a8f-4cd6-8826-8e6afded279c" >
+		<set-variable value='#[write(payload, "application/json") as String]' doc:name="json" doc:id="088d5aee-df81-4209-9786-ea364f5358c7" variableName="json"/>
+		<async doc:name="Async" doc:id="24a1f0fe-14df-4ed9-af24-fe69a47b649f" >
+			<ee:transform doc:name="PrepareInputForFlowLog" doc:id="644b8731-35e5-4be3-a9d8-11e82111012f" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  TransactionId: vars.TransactionId,
+  LogLevel: "INFO",
+  LogMessage: "Replica CDB-SF - Apex input",
+  FlowName: "CDB001-ONCLOUD",
+  SystemProducer: "CDB",
+  SystemConsumer: "SF",
+  "Creation_Date": now() as String {format: "yyyy-MM-dd HH:mm:ss.SSS"},
+  PayloadType: "JSON",
+  Payload: vars.json,
+  ExceptionMessage: "Nessun Errore",
+  ErrorType: "Nessun Errore",
+  ErrorCode: "00",
+  ErrorMessage: "Nessun Errore"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="FlowLogSender" doc:id="39863b4b-57f9-4ed8-9958-f16d4921698d" name="FlowLogSender"/>
+		</async>
+		<remove-variable doc:name="json" doc:id="09fb099c-2da3-4d02-9a94-803950780658" variableName="json"/>
+	</sub-flow>
+	<sub-flow name="logApexOutput" doc:id="0e498045-5104-4f2e-9e2d-61509c786800" >
+		<set-variable value='#[write(payload, "application/json") as String]' doc:name="json" doc:id="0309b6fd-ff5c-484a-b943-faad83d4f2e6" variableName="json" />
+		<async doc:name="Async" doc:id="ee192567-9fe4-4bce-b408-86b5c076290e" >
+			<ee:transform doc:name="PrepareInputForFlowLog" doc:id="fa2734c1-6792-4e5e-82a5-b5a7de9aa1d8" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  TransactionId: vars.TransactionId,
+  LogLevel: "INFO",
+  LogMessage: "Replica CDB-SF - Apex output",
+  FlowName: "CDB001-ONCLOUD",
+  SystemProducer: "CDB",
+  SystemConsumer: "SF",
+  "Creation_Date": now() as String {format: "yyyy-MM-dd HH:mm:ss.SSS"},
+  PayloadType: "JSON",
+  Payload: vars.json,
+  ExceptionMessage: "Nessun Errore",
+  ErrorType: "Nessun Errore",
+  ErrorCode: "00",
+  ErrorMessage: "Nessun Errore"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="FlowLogSender" doc:id="0032eb37-7caa-4839-a5f8-818428981c45" name="FlowLogSender" />
+		</async>
+		<remove-variable doc:name="json" doc:id="afbd1e71-90c1-4e63-8eca-a9f83695f143" variableName="json"/>
+	</sub-flow>
+	<sub-flow name="ReadFromQueueAndSplit">
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------LOG START----- " level="INFO" doc:name="Logger" />
+        <set-variable value="#[correlationId]" doc:name="TransactionId" doc:id="92d7b1bf-947d-498b-9fc3-7d097818b548" variableName="TransactionId"/>
+		<set-payload value="#[payload]" mimeType="application/json" />
+        <ee:transform doc:name="Transform Message">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  executionDate: payload.executionDate,
+  packets: payload.packets map (packet, indexOfPacket) -> {
+    packetId: packet.packetId,
+    transactionList: packet.transactionList map (transactionList, indexOfTransactionList) -> {
+      customerSedeList: transactionList.customerSedeList map (customerSedeList, indexOfCustomerSedeList) -> {
+        DUG__c: customerSedeList.DUG__c,
+        transactionId: customerSedeList.transactionId,
+        codice_Customer__c: customerSedeList.codice_Customer__c,
+        codice_Customer__c_old: customerSedeList.codice_Customer__c_old,
+        codice_Sede__c: customerSedeList.codice_Sede__c,
+        recordTypeId: customerSedeList.recordTypeId,
+        evento: customerSedeList.evento,
+        name: customerSedeList.name,
+        IOL_AnnoFatturato__c: customerSedeList.IOL_AnnoFatturato__c,
+        anno_Fondazione__c: customerSedeList.anno_Fondazione__c,
+        IOL_AnnoRiferimentoDipendenti__c: customerSedeList.iol_AnnoRiferimentoDipendenti__c,
+        annualRevenue: customerSedeList.annualRevenue,
+        IOL_CustomerCountryCod__c: customerSedeList.iol_CustomerCountryCod__c,
+        billingCity: customerSedeList.billingCity,
+        billingCountry: customerSedeList.billingCountry,
+        billingCountryCod: customerSedeList.billingCountryCod,
+        billingState: customerSedeList.billingState,
+        billingStreet: customerSedeList.billingStreet,
+        IOL_BuonoOrdine__c: customerSedeList.iol_BuonoOrdine__c,
+        cap__c: customerSedeList.cap__c,
+        IOL_CodiceCategoriaMercMassimaSpesa__c: customerSedeList.iol_CodiceCategoriaMercMassimaSpesa__c,
+        IOL_Categoria__c: customerSedeList.IOL_Categoria__c,
+        cellula__c: customerSedeList.cellula__c,
+        IOL_classificazionePMI__c: customerSedeList.iol_classificazionePMI__c,
+        IOL_CodiceAreaElenco__c: customerSedeList.IOL_CodiceAreaElenco__c,
+        IOL_CodiceCategoriaISTAT__c: customerSedeList.IOL_CodiceCategoriaISTAT__c,
+        IOL_CodiceCategoriaMerceologica__c: customerSedeList.IOL_CodiceCategoriaMerceologica__c,
+        codice_Comune_IOL__c: customerSedeList.codice_Comune_IOL__c,
+        codice_Stato_Customer__c: customerSedeList.codice_Stato_Customer__c,
+        codiceFiscale__c: customerSedeList.codiceFiscale__c,
+        codice_Frazione__c: customerSedeList.codice_Frazione__c,
+        codice_Provincia_REA__c: customerSedeList.codice_Provincia_REA__c,
+        IOL_NumeroREA__c: customerSedeList.iol_NumeroREA__c,
+        codice_Stato_Sede__c: customerSedeList.codice_Stato_Sede__c,
+        IOL_CognomePersonaFisica__c: customerSedeList.iol_CognomePersonaFisica__c,
+        comune_IOL__c: customerSedeList.comune_IOL__c,
+        coordinate_Anagrafiche__cX: customerSedeList.coordinate_Anagrafiche__cX,
+        coordinate_Anagrafiche__cY: customerSedeList.coordinate_Anagrafiche__cY,
+        coordinate_Manuali__c: customerSedeList.coordinate_Manuali__c,
+        dato_Fiscale_Estero_Certificato__c: customerSedeList.dato_Fiscale_Estero_Certificato__c,
+        IOL_CategoriaISTAT__c: customerSedeList.iol_CategoriaISTAT__c,
+        IOL_CategoriaMerceologica__c: customerSedeList.iol_CategoriaMerceologica__c,
+        email_Arricchimento__c: customerSedeList.email_Arricchimento__c,
+        email_Arricchimento_ID__c: customerSedeList.email_Arricchimento_ID__c,
+        email_Bozze__c: customerSedeList.email_Bozze__c,
+        email_Bozze_ID__c: customerSedeList.email_Bozze_ID__c,
+        email_Commerciale_IOL__c: customerSedeList.email_Commerciale_IOL__c,
+        email_Commerciale_IOL_ID__c: customerSedeList.email_Commerciale_IOL_ID__c,
+        email_Fatturazione__c: customerSedeList.email_Fatturazione__c,
+        email_Fatturazione_ID__c: customerSedeList.email_Fatturazione_ID__c,
+        email_Post_Vendita__c: customerSedeList.email_Post_Vendita__c,
+        email_Post_Vendita_ID__c: customerSedeList.email_Post_Vendita_ID__c,
+        IOL_Email_Arricchimento_PEC__c: customerSedeList.iol_Email_Arricchimento_PEC__c,
+        IOL_Email_Bozze_PEC__c: customerSedeList.iol_Email_Bozze_PEC__c,
+        IOL_Email_Commerciale_IOL_PEC__c: customerSedeList.iol_Email_Commerciale_IOL_PEC__c,
+        IOL_Email_Fatturazione_PEC__c: customerSedeList.iol_Email_Fatturazione_PEC__c,
+        IOL_Email_Post_Vendita_PEC__c: customerSedeList.iol_Email_Post_Vendita_PEC__c,
+        ente_Pubblico__c: customerSedeList.ente_Pubblico__c,
+        fatturazione_Codice_Fiscale__c: customerSedeList.fatturazione_Codice_Fiscale__c,
+        fatturazione_Elettronica_Obbligatoria__c: customerSedeList.fatturazione_Elettronica_Obbligatoria__c,
+        frazione__c: customerSedeList.frazione__c,
+        IOL_IndirizzoID__c: customerSedeList.iol_IndirizzoID__c,
+        info_Toponimo__c: customerSedeList.info_Toponimo__c,
+        insegna__c: customerSedeList.insegna__c,
+        IOL_MercatoAggregato__c: customerSedeList.iol_MercatoAggregato__c,
+        industry: customerSedeList.industry,
+        nazione__c: customerSedeList.nazione__c,
+        IOL_PotenzialeNIP__c: customerSedeList.iol_PotenzialeNIP__c,
+        IOL_NomePersonaFisica__c: customerSedeList.iol_NomePersonaFisica__c,
+        note_sul_Recapito_Fattura__c: customerSedeList.note_sul_Recapito_Fattura__c,
+        numero_Civico__c: customerSedeList.numero_Civico__c,
+        numberOfEmployees: customerSedeList.numberOfEmployees,
+        opec__c: customerSedeList.opec__c,
+        IOL_OpecConsegnabile__c: customerSedeList.iol_OpecConsegnabile__c,
+        partitaIva__c: customerSedeList.partitaIva__c,
+        profondita_Coordinate_Anagrafiche__c: customerSedeList.profondita_Coordinate_Anagrafiche__c,
+        provincia_IOL__c: customerSedeList.provincia_IOL__c,
+        IOL_CustomerCessatoRiattivabile__c: customerSedeList.iol_CustomerCessatoRiattivabile__c,
+        IOL_SedeCessataRiattivabile__c: customerSedeList.iol_SedeCessataRiattivabile__c,
+        sede_Primaria_OPEC__c: customerSedeList.sede_Primaria_OPEC__c,
+        IOL_SottoareaMercato__c: customerSedeList.iol_SottoareaMercato__c,
+        IOL_SottoclasseDipendenti__c: customerSedeList.iol_SottoclasseDipendenti__c,
+        IOL_SottoclasseFatturato__c: customerSedeList.iol_SottoclasseFatturato__c,
+        IOL_TipoMercato__c: customerSedeList.iol_TipoMercato__c,
+        telefono_1_ID__c: customerSedeList.telefono_1_ID__c,
+        phone: customerSedeList.phone,
+        primario1__c: customerSedeList.primario1__c,
+        tipologiaTelefono1__c: customerSedeList.tipologiaTelefono1__c,
+        telefono_2_ID__c: customerSedeList.telefono_2_ID__c,
+        telefono2__c: customerSedeList.telefono2__c,
+        primario2__c: customerSedeList.primario2__c,
+        tipologiaTelefono2__c: customerSedeList.tipologiaTelefono2__c,
+        telefono_3_ID__c: customerSedeList.telefono_3_ID__c,
+        telefono3__c: customerSedeList.telefono3__c,
+        primario3__c: customerSedeList.primario3__c,
+        tipologiaTelefono3__c: customerSedeList.tipologiaTelefono3__c,
+        telefono_4_ID__c: customerSedeList.telefono_4_ID__c,
+        telefono4__c: customerSedeList.telefono4__c,
+        primario4__c: customerSedeList.primario4__c,
+        tipologiaTelefono4__c: customerSedeList.tipologiaTelefono4__c,
+        telefono_5_ID__c: customerSedeList.telefono_5_ID__c,
+        telefono5__c: customerSedeList.telefono5__c,
+        primario5__c: customerSedeList.primario5__c,
+        tipologiaTelefono5__c: customerSedeList.tipologiaTelefono5__c,
+        telefono_6_ID__c: customerSedeList.telefono_6_ID__c,
+        telefono6__c: customerSedeList.telefono6__c,
+        primario6__c: customerSedeList.primario6__c,
+        tipologiaTelefono6__c: customerSedeList.tipologiaTelefono6__c,
+        telefono_7_ID__c: customerSedeList.telefono_7_ID__c,
+        telefono7__c: customerSedeList.telefono7__c,
+        primario7__c: customerSedeList.primario7__c,
+        tipologiaTelefono7__c: customerSedeList.tipologiaTelefono7__c,
+        telefono_8_ID__c: customerSedeList.telefono_8_ID__c,
+        telefono8__c: customerSedeList.telefono8__c,
+        primario8__c: customerSedeList.primario8__c,
+        tipologiaTelefono8__c: customerSedeList.tipologiaTelefono8__c,
+        tipologia_Persona_Giuridica__c: customerSedeList.tipologia_Persona_Giuridica__c,
+        tipologia_societa_giuridica__c: customerSedeList.tipologia_societa_giuridica__c,
+        toponimo__c: customerSedeList.toponimo__c,
+        ultima_Posizione_Amminstrativa__c: customerSedeList.ultima_Posizione_Amminstrativa__c,
+        "type": customerSedeList."type",
+        URL_ID_Fanpage__c: customerSedeList.url_ID_Fanpage__c,
+        URL_Fanpage__c: customerSedeList.url_Fanpage__c,
+        URL_ID_Istituzionale__c: customerSedeList.url_ID_Istituzionale__c,
+        website: customerSedeList.website,
+        URL_ID_Pagine_Bianche__c: customerSedeList.url_ID_Pagine_Bianche__c,
+        URL_Pagine_Bianche__c: customerSedeList.url_Pagine_Bianche__c,
+        URL_ID_Pagine_Gialle__c: customerSedeList.url_ID_Pagine_Gialle__c,
+        URL_Pagine_Gialle__c: customerSedeList.url_Pagine_Gialle__c,
+        IOL_CodiceIndicatoreClientiSpeciali__c: customerSedeList.IOL_CodiceIndicatoreClientiSpeciali__c,
+        IOL_CodiceSede_old: customerSedeList.IOL_CodiceSede_old,
+        IOL_GruppoContabilitaCliente__c: customerSedeList.iol_GruppoContabilitaCliente__c,
+        IOL_CategoriaDiAppartenenza__c: customerSedeList.iol_CategoriaDiAppartenenza__c,
+        IOL_TipoDiPubblicaAmministrazione__c: customerSedeList.iol_TipoDiPubblicaAmministrazione__c,
+        IOL_ConsensoVenditaTerzi__c: customerSedeList.iol_ConsensoVenditaTerzi__c,
+        IOL_ConsensoProfilazione__c: customerSedeList.iol_ConsensoProfilazione__c,
+        IOL_ConsensoTelefono1__c: customerSedeList.iol_ConsensoTelefono1__c,
+        IOL_ConsensoTelefono2__c: customerSedeList.iol_ConsensoTelefono2__c,
+        IOL_ConsensoTelefono3__c: customerSedeList.iol_ConsensoTelefono3__c,
+        IOL_ConsensoTelefono4__c: customerSedeList.iol_ConsensoTelefono4__c,
+        IOL_ConsensoTelefono5__c: customerSedeList.iol_ConsensoTelefono5__c,
+        IOL_ConsensoTelefono6__c: customerSedeList.iol_ConsensoTelefono6__c,
+        IOL_ConsensoTelefono7__c: customerSedeList.iol_ConsensoTelefono7__c,
+        IOL_ConsensoTelefono8__c: customerSedeList.iol_ConsensoTelefono8__c,
+		PrimarioCustomer1__c: customerSedeList.primarioCustomer1__c,
+		PrimarioCustomer2__c: customerSedeList.primarioCustomer2__c,
+		PrimarioCustomer3__c: customerSedeList.primarioCustomer3__c,
+		PrimarioCustomer4__c: customerSedeList.primarioCustomer4__c,
+		PrimarioCustomer5__c: customerSedeList.primarioCustomer5__c,
+		PrimarioCustomer6__c: customerSedeList.primarioCustomer6__c,
+		PrimarioCustomer7__c: customerSedeList.primarioCustomer7__c,
+		PrimarioCustomer8__c: customerSedeList.primarioCustomer8__c,
+		Email_Fatturazione_CodUns__c: customerSedeList.email_Fatturazione_CodUns__c,
+		Email_Post_Vendita_IOL_CodUns__c: customerSedeList.email_Post_Vendita_IOL_CodUns__c,
+		Email_Commerciale_IOL_CodUns__c: customerSedeList.email_Commerciale_IOL_CodUns__c,
+		IOL_Privato__c: customerSedeList.IOL_Privato__c
+      },
+      evento: transactionList.evento,
+      fonte: transactionList.fonte,
+      transactionId: transactionList.transactionId
+    }
+  },
+  simplePackets: payload.simplePackets map (simplePacket, indexOfSimplePacket) -> {
+    eventName: simplePacket.eventName,
+    packets: simplePacket.packets map (packet, indexOfPacket) -> {
+      packetId: packet.packetId,
+      transactionList: packet.transactionList map (transactionList, indexOfTransactionList) -> {
+        customerSedeList: transactionList.customerSedeList map (customerSedeList, indexOfCustomerSedeList) -> {
+          DUG__c: customerSedeList.DUG__c,
+          transactionId: customerSedeList.transactionId,
+          codice_Customer__c: customerSedeList.codice_Customer__c,
+          codice_Customer__c_old: customerSedeList.codice_Customer__c_old,
+          codice_Sede__c: customerSedeList.codice_Sede__c,
+          IOL_CodiceSede_old: customerSedeList.IOL_CodiceSede_old,
+          recordTypeId: customerSedeList.recordTypeId,
+          evento: customerSedeList.evento,
+          name: customerSedeList.name,
+          IOL_AnnoFatturato__c: customerSedeList.IOL_AnnoFatturato__c,
+          anno_Fondazione__c: customerSedeList.anno_Fondazione__c,
+          IOL_AnnoRiferimentoDipendenti__c: customerSedeList.IOL_AnnoRiferimentoDipendenti__c,
+          IOL_CustomerCountryCod__c: customerSedeList.IOL_CustomerCountryCod__c,
+          annualRevenue: customerSedeList.annualRevenue,
+          billingCity: customerSedeList.billingCity,
+          billingCountry: customerSedeList.billingCountry,
+          billingCountryCod: customerSedeList.billingCountryCod,
+          billingState: customerSedeList.billingState,
+          billingStreet: customerSedeList.billingStreet,
+          IOL_BuonoOrdine__c: customerSedeList.IOL_BuonoOrdine__c,
+          cap__c: customerSedeList.cap__c,
+          IOL_CodiceCategoriaMercMassimaSpesa__c: customerSedeList.IOL_CodiceCategoriaMercMassimaSpesa__c,
+          IOL_Categoria__c: customerSedeList.IOL_Categoria__c,
+          cellula__c: customerSedeList.cellula__c,
+          IOL_classificazionePMI__c: customerSedeList.IOL_classificazionePMI__c,
+          IOL_CodiceAreaElenco__c: customerSedeList.IOL_CodiceAreaElenco__c,
+          IOL_CodiceCategoriaISTAT__c: customerSedeList.IOL_CodiceCategoriaISTAT__c,
+          IOL_CodiceCategoriaMerceologica__c: customerSedeList.IOL_CodiceCategoriaMerceologica__c,
+          codice_Comune_IOL__c: customerSedeList.codice_Comune_IOL__c,
+          codice_Stato_Customer__c: customerSedeList.codice_Stato_Customer__c,
+          codiceFiscale__c: customerSedeList.codiceFiscale__c,
+          codice_Frazione__c: customerSedeList.codice_Frazione__c,
+          codice_Provincia_REA__c: customerSedeList.codice_Provincia_REA__c,
+          IOL_NumeroREA__c: customerSedeList.IOL_NumeroREA__c,
+          codice_Stato_Sede__c: customerSedeList.codice_Stato_Sede__c,
+          IOL_CognomePersonaFisica__c: customerSedeList.IOL_CognomePersonaFisica__c,
+          comune_IOL__c: customerSedeList.comune_IOL__c,
+          coordinate_Anagrafiche__cX: customerSedeList.coordinate_Anagrafiche__cX,
+          coordinate_Anagrafiche__cY: customerSedeList.coordinate_Anagrafiche__cY,
+          coordinate_Manuali__c: customerSedeList.coordinate_Manuali__c,
+          dato_Fiscale_Estero_Certificato__c: customerSedeList.dato_Fiscale_Estero_Certificato__c,
+          IOL_CategoriaISTAT__c: customerSedeList.IOL_CategoriaISTAT__c,
+          IOL_CategoriaMerceologica__c: customerSedeList.IOL_CategoriaMerceologica__c,
+          email_Arricchimento__c: customerSedeList.email_Arricchimento__c,
+          email_Arricchimento_ID__c: customerSedeList.email_Arricchimento_ID__c,
+          email_Bozze__c: customerSedeList.email_Bozze__c,
+          email_Bozze_ID__c: customerSedeList.email_Bozze_ID__c,
+          email_Commerciale_IOL__c: customerSedeList.email_Commerciale_IOL__c,
+          email_Commerciale_IOL_ID__c: customerSedeList.email_Commerciale_IOL_ID__c,
+          email_Fatturazione__c: customerSedeList.email_Fatturazione__c,
+          email_Fatturazione_ID__c: customerSedeList.email_Fatturazione_ID__c,
+          email_Post_Vendita__c: customerSedeList.email_Post_Vendita__c,
+          email_Post_Vendita_ID__c: customerSedeList.email_Post_Vendita_ID__c,
+          IOL_Email_Arricchimento_PEC__c: customerSedeList.IOL_Email_Arricchimento_PEC__c,
+          IOL_Email_Bozze_PEC__c: customerSedeList.IOL_Email_Bozze_PEC__c,
+          IOL_Email_Commerciale_IOL_PEC__c: customerSedeList.IOL_Email_Commerciale_IOL_PEC__c,
+          IOL_Email_Fatturazione_PEC__c: customerSedeList.IOL_Email_Fatturazione_PEC__c,
+          IOL_Email_Post_Vendita_PEC__c: customerSedeList.IOL_Email_Post_Vendita_PEC__c,
+          ente_Pubblico__c: customerSedeList.ente_Pubblico__c,
+          fatturazione_Codice_Fiscale__c: customerSedeList.fatturazione_Codice_Fiscale__c,
+          fatturazione_Elettronica_Obbligatoria__c: customerSedeList.fatturazione_Elettronica_Obbligatoria__c,
+          frazione__c: customerSedeList.frazione__c,
+          IOL_IndirizzoID__c: customerSedeList.IOL_IndirizzoID__c,
+          info_Toponimo__c: customerSedeList.info_Toponimo__c,
+          insegna__c: customerSedeList.insegna__c,
+          IOL_MercatoAggregato__c: customerSedeList.IOL_MercatoAggregato__c,
+          industry: customerSedeList.industry,
+          nazione__c: customerSedeList.nazione__c,
+          IOL_PotenzialeNIP__c: customerSedeList.IOL_PotenzialeNIP__c,
+          IOL_NomePersonaFisica__c: customerSedeList.IOL_NomePersonaFisica__c,
+          note_sul_Recapito_Fattura__c: customerSedeList.note_sul_Recapito_Fattura__c,
+          numero_Civico__c: customerSedeList.numero_Civico__c,
+          numberOfEmployees: customerSedeList.numberOfEmployees,
+          opec__c: customerSedeList.opec__c,
+          IOL_OpecConsegnabile__c: customerSedeList.IOL_OpecConsegnabile__c,
+          partitaIva__c: customerSedeList.partitaIva__c,
+          profondita_Coordinate_Anagrafiche__c: customerSedeList.profondita_Coordinate_Anagrafiche__c,
+          provincia_IOL__c: customerSedeList.provincia_IOL__c,
+          IOL_CustomerCessatoRiattivabile__c: customerSedeList.IOL_CustomerCessatoRiattivabile__c,
+          IOL_SedeCessataRiattivabile__c: customerSedeList.IOL_SedeCessataRiattivabile__c,
+          sede_Primaria_OPEC__c: customerSedeList.sede_Primaria_OPEC__c,
+          IOL_SottoareaMercato__c: customerSedeList.IOL_SottoareaMercato__c,
+          IOL_SottoclasseDipendenti__c: customerSedeList.IOL_SottoclasseDipendenti__c,
+          IOL_SottoclasseFatturato__c: customerSedeList.IOL_SottoclasseFatturato__c,
+          IOL_TipoMercato__c: customerSedeList.IOL_TipoMercato__c,
+          telefono_1_ID__c: customerSedeList.telefono_1_ID__c,
+          phone: customerSedeList.phone,
+          primario1__c: customerSedeList.primario1__c,
+          tipologiaTelefono1__c: customerSedeList.tipologiaTelefono1__c,
+          telefono_2_ID__c: customerSedeList.telefono_2_ID__c,
+          telefono2__c: customerSedeList.telefono2__c,
+          primario2__c: customerSedeList.primario2__c,
+          tipologiaTelefono2__c: customerSedeList.tipologiaTelefono2__c,
+          telefono_3_ID__c: customerSedeList.telefono_3_ID__c,
+          telefono3__c: customerSedeList.telefono3__c,
+          primario3__c: customerSedeList.primario3__c,
+          tipologiaTelefono3__c: customerSedeList.tipologiaTelefono3__c,
+          telefono_4_ID__c: customerSedeList.telefono_4_ID__c,
+          telefono4__c: customerSedeList.telefono4__c,
+          primario4__c: customerSedeList.primario4__c,
+          tipologiaTelefono4__c: customerSedeList.tipologiaTelefono4__c,
+          telefono_5_ID__c: customerSedeList.telefono_5_ID__c,
+          telefono5__c: customerSedeList.telefono5__c,
+          primario5__c: customerSedeList.primario5__c,
+          tipologiaTelefono5__c: customerSedeList.tipologiaTelefono5__c,
+          telefono_6_ID__c: customerSedeList.telefono_6_ID__c,
+          telefono6__c: customerSedeList.telefono6__c,
+          primario6__c: customerSedeList.primario6__c,
+          tipologiaTelefono6__c: customerSedeList.tipologiaTelefono6__c,
+          telefono_7_ID__c: customerSedeList.telefono_7_ID__c,
+          telefono7__c: customerSedeList.telefono7__c,
+          primario7__c: customerSedeList.primario7__c,
+          tipologiaTelefono7__c: customerSedeList.tipologiaTelefono7__c,
+          telefono_8_ID__c: customerSedeList.telefono_8_ID__c,
+          telefono8__c: customerSedeList.telefono8__c,
+          primario8__c: customerSedeList.primario8__c,
+          tipologiaTelefono8__c: customerSedeList.tipologiaTelefono8__c,
+          tipologia_Persona_Giuridica__c: customerSedeList.tipologia_Persona_Giuridica__c,
+          tipologia_societa_giuridica__c: customerSedeList.tipologia_societa_giuridica__c,
+          toponimo__c: customerSedeList.toponimo__c,
+          ultima_Posizione_Amminstrativa__c: customerSedeList.ultima_Posizione_Amminstrativa__c,
+          "type": customerSedeList."type",
+          URL_ID_Fanpage__c: customerSedeList.url_ID_Fanpage__c,
+          URL_Fanpage__c: customerSedeList.url_Fanpage__c,
+          URL_ID_Istituzionale__c: customerSedeList.url_ID_Istituzionale__c,
+          website: customerSedeList.website,
+          URL_ID_Pagine_Bianche__c: customerSedeList.url_ID_Pagine_Bianche__c,
+          URL_Pagine_Bianche__c: customerSedeList.url_Pagine_Bianche__c,
+          URL_ID_Pagine_Gialle__c: customerSedeList.url_ID_Pagine_Gialle__c,
+          URL_Pagine_Gialle__c: customerSedeList.url_Pagine_Gialle__c,
+          IOL_CodiceIndicatoreClientiSpeciali__c: customerSedeList.IOL_CodiceIndicatoreClientiSpeciali__c,
+          IOL_GruppoContabilitaCliente__c: customerSedeList.IOL_GruppoContabilitaCliente__c,
+          IOL_CategoriaDiAppartenenza__c: customerSedeList.IOL_CategoriaDiAppartenenza__c,
+          IOL_TipoDiPubblicaAmministrazione__c: customerSedeList.IOL_TipoDiPubblicaAmministrazione__c,
+          IOL_ConsensoVenditaTerzi__c: customerSedeList.IOL_ConsensoVenditaTerzi__c,
+          IOL_ConsensoProfilazione__c: customerSedeList.IOL_ConsensoProfilazione__c,
+          IOL_ConsensoTelefono1__c: customerSedeList.IOL_ConsensoTelefono1__c,
+          IOL_ConsensoTelefono2__c: customerSedeList.IOL_ConsensoTelefono2__c,
+          IOL_ConsensoTelefono3__c: customerSedeList.IOL_ConsensoTelefono3__c,
+          IOL_ConsensoTelefono4__c: customerSedeList.IOL_ConsensoTelefono4__c,
+          IOL_ConsensoTelefono5__c: customerSedeList.IOL_ConsensoTelefono5__c,
+          IOL_ConsensoTelefono6__c: customerSedeList.IOL_ConsensoTelefono6__c,
+          IOL_ConsensoTelefono7__c: customerSedeList.IOL_ConsensoTelefono7__c,
+          IOL_ConsensoTelefono8__c: customerSedeList.IOL_ConsensoTelefono8__c,
+		  PrimarioCustomer1__c: customerSedeList.primarioCustomer1__c,
+		  PrimarioCustomer2__c: customerSedeList.primarioCustomer2__c,
+		  PrimarioCustomer3__c: customerSedeList.primarioCustomer3__c,
+		  PrimarioCustomer4__c: customerSedeList.primarioCustomer4__c,
+		  PrimarioCustomer5__c: customerSedeList.primarioCustomer5__c,
+		  PrimarioCustomer6__c: customerSedeList.primarioCustomer6__c,
+		  PrimarioCustomer7__c: customerSedeList.primarioCustomer7__c,
+		  PrimarioCustomer8__c: customerSedeList.primarioCustomer8__c,
+		  Email_Fatturazione_CodUns__c: customerSedeList.email_Fatturazione_CodUns__c,
+		  Email_Post_Vendita_IOL_CodUns__c: customerSedeList.email_Post_Vendita_IOL_CodUns__c,
+		  Email_Commerciale_IOL_CodUns__c: customerSedeList.email_Commerciale_IOL_CodUns__c,
+		  IOL_Privato__c: customerSedeList.IOL_Privato__c
+        },
+        evento: transactionList.evento,
+        fonte: transactionList.source,
+        transactionId: transactionList.transactionId
+      }
+    }
+  }
+} as Object {class: "cdbPoller.PacketContainerInput"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Letto elemento dalla coda; numero pacchetti complessi #[payload.numberOfPackets()], numero pacchetti semplici #[payload.numberOfSimplePackets()] su #[sizeOf(payload.simplePackets)] eventi" level="INFO" doc:name="Logger">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </logger>
+		<logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------#[payload.logTransactionIds()]" level="INFO" doc:name="Logger">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </logger>
+        <scatter-gather doc:name="Scatter-Gather">
+            <route>
+                <set-payload value="#[payload]" mimeType="application/java" />
+                <ee:transform doc:name="Transform Message">
+                    <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+payload.simplePackets map (simplePacket, indexOfSimplePacket) -> {
+    eventName: simplePacket.eventName,
+    packets: simplePacket.packets map (packet, indexOfPacket) -> {
+      packetId: packet.packetId,
+      transactionList: packet.transactionList map (transactionList, indexOfTransactionList) -> {
+        customerSedeList: transactionList.customerSedeList map (customerSedeList, indexOfCustomerSedeList) -> {
+          "DUG__c": customerSedeList."DUG__c",
+          "IOL_AnnoFatturato__c": customerSedeList."IOL_AnnoFatturato__c",
+          "IOL_AnnoRiferimentoDipendenti__c": customerSedeList."IOL_AnnoRiferimentoDipendenti__c",
+          "IOL_BuonoOrdine__c": customerSedeList."IOL_BuonoOrdine__c",
+          "IOL_CategoriaISTAT__c": customerSedeList."IOL_CategoriaISTAT__c",
+          "IOL_CategoriaMerceologica__c": customerSedeList."IOL_CategoriaMerceologica__c",
+          "IOL_Categoria__c": customerSedeList."IOL_Categoria__c",
+          "IOL_CodiceAreaElenco__c": customerSedeList."IOL_CodiceAreaElenco__c",
+          "IOL_CodiceCategoriaISTAT__c": customerSedeList."IOL_CodiceCategoriaISTAT__c",
+          "IOL_CodiceCategoriaMercMassimaSpesa__c": customerSedeList."IOL_CodiceCategoriaMercMassimaSpesa__c",
+          "IOL_CodiceCategoriaMerceologica__c": customerSedeList."IOL_CodiceCategoriaMerceologica__c",
+          "IOL_CodiceIndicatoreClientiSpeciali__c": customerSedeList."IOL_CodiceIndicatoreClientiSpeciali__c",
+          "IOL_CognomePersonaFisica__c": customerSedeList."IOL_CognomePersonaFisica__c",
+          "IOL_CustomerCessatoRiattivabile__c": customerSedeList."IOL_CustomerCessatoRiattivabile__c",
+          "IOL_Email_Arricchimento_PEC__c": customerSedeList."IOL_Email_Arricchimento_PEC__c",
+          "IOL_Email_Bozze_PEC__c": customerSedeList."IOL_Email_Bozze_PEC__c",
+          "IOL_Email_Commerciale_IOL_PEC__c": customerSedeList."IOL_Email_Commerciale_IOL_PEC__c",
+          "IOL_Email_Fatturazione_PEC__c": customerSedeList."IOL_Email_Fatturazione_PEC__c",
+          "IOL_Email_Post_Vendita_PEC__c": customerSedeList."IOL_Email_Post_Vendita_PEC__c",
+          "IOL_IndirizzoID__c": customerSedeList."IOL_IndirizzoID__c",
+          "IOL_MercatoAggregato__c": customerSedeList."IOL_MercatoAggregato__c",
+          "IOL_NomePersonaFisica__c": customerSedeList."IOL_NomePersonaFisica__c",
+          "IOL_NumeroREA__c": customerSedeList."IOL_NumeroREA__c",
+          "IOL_OpecConsegnabile__c": customerSedeList."IOL_OpecConsegnabile__c",
+          "IOL_PotenzialeNIP__c": customerSedeList."IOL_PotenzialeNIP__c",
+          "IOL_SedeCessataRiattivabile__c": customerSedeList."IOL_SedeCessataRiattivabile__c",
+          "IOL_SottoareaMercato__c": customerSedeList."IOL_SottoareaMercato__c",
+          "IOL_SottoclasseDipendenti__c": customerSedeList."IOL_SottoclasseDipendenti__c",
+          "IOL_SottoclasseFatturato__c": customerSedeList."IOL_SottoclasseFatturato__c",
+          "IOL_TipoMercato__c": customerSedeList."IOL_TipoMercato__c",
+          "IOL_classificazionePMI__c": customerSedeList."IOL_classificazionePMI__c",
+          "URL_Fanpage__c": customerSedeList."URL_Fanpage__c",
+          "URL_ID_Fanpage__c": customerSedeList."URL_ID_Fanpage__c",
+          "URL_ID_Istituzionale__c": customerSedeList."URL_ID_Istituzionale__c",
+          "URL_ID_Pagine_Bianche__c": customerSedeList."URL_ID_Pagine_Bianche__c",
+          "URL_ID_Pagine_Gialle__c": customerSedeList."URL_ID_Pagine_Gialle__c",
+          "URL_Pagine_Bianche__c": customerSedeList."URL_Pagine_Bianche__c",
+          "URL_Pagine_Gialle__c": customerSedeList."URL_Pagine_Gialle__c",
+          "anno_Fondazione__c": customerSedeList."anno_Fondazione__c",
+          annualRevenue: customerSedeList.annualRevenue,
+          billingCity: customerSedeList.billingCity,
+          billingCountry: customerSedeList.billingCountry,
+          billingCountryCod: customerSedeList.billingCountryCod,
+          billingState: customerSedeList.billingState,
+          billingStreet: customerSedeList.billingStreet,
+          "cap__c": customerSedeList."cap__c",
+          "cellula__c": customerSedeList."cellula__c",
+          "codiceFiscale__c": customerSedeList."codiceFiscale__c",
+          "codice_Comune_IOL__c": customerSedeList."codice_Comune_IOL__c",
+          "codice_Customer__c": customerSedeList."codice_Customer__c",
+          "codice_Frazione__c": customerSedeList."codice_Frazione__c",
+          "codice_Provincia_REA__c": customerSedeList."codice_Provincia_REA__c",
+          "codice_Sede__c": customerSedeList."codice_Sede__c",
+          "codice_Customer__c_old": customerSedeList."codice_Customer__c_old",
+          "IOL_CodiceSede_old": customerSedeList."IOL_CodiceSede_old",
+          "codice_Stato_Customer__c": customerSedeList."codice_Stato_Customer__c",
+          "codice_Stato_Sede__c": customerSedeList."codice_Stato_Sede__c",
+          "comune_IOL__c": customerSedeList."comune_IOL__c",
+          "coordinate_Anagrafiche__cX": customerSedeList."coordinate_Anagrafiche__cX",
+          "coordinate_Anagrafiche__cY": customerSedeList."coordinate_Anagrafiche__cY",
+          "coordinate_Manuali__c": customerSedeList."coordinate_Manuali__c",
+          "dato_Fiscale_Estero_Certificato__c": customerSedeList."dato_Fiscale_Estero_Certificato__c",
+          "email_Arricchimento_ID__c": customerSedeList."email_Arricchimento_ID__c",
+          "email_Arricchimento__c": customerSedeList."email_Arricchimento__c",
+          "email_Bozze_ID__c": customerSedeList."email_Bozze_ID__c",
+          "email_Bozze__c": customerSedeList."email_Bozze__c",
+          "email_Commerciale_IOL_ID__c": customerSedeList."email_Commerciale_IOL_ID__c",
+          "email_Commerciale_IOL__c": customerSedeList."email_Commerciale_IOL__c",
+          "email_Fatturazione_ID__c": customerSedeList."email_Fatturazione_ID__c",
+          "email_Fatturazione__c": customerSedeList."email_Fatturazione__c",
+          "email_Post_Vendita_ID__c": customerSedeList."email_Post_Vendita_ID__c",
+          "email_Post_Vendita__c": customerSedeList."email_Post_Vendita__c",
+          "ente_Pubblico__c": customerSedeList."ente_Pubblico__c",
+          evento: customerSedeList.evento,
+          "fatturazione_Codice_Fiscale__c": customerSedeList."fatturazione_Codice_Fiscale__c",
+          "fatturazione_Elettronica_Obbligatoria__c": customerSedeList."fatturazione_Elettronica_Obbligatoria__c",
+          "frazione__c": customerSedeList."frazione__c",
+          industry: customerSedeList.industry,
+          "info_Toponimo__c": customerSedeList."info_Toponimo__c",
+          "insegna__c": customerSedeList."insegna__c",
+          name: customerSedeList.name,
+          "nazione__c": customerSedeList."nazione__c",
+          "note_sul_Recapito_Fattura__c": customerSedeList."note_sul_Recapito_Fattura__c",
+          numberOfEmployees: customerSedeList.numberOfEmployees,
+          "numero_Civico__c": customerSedeList."numero_Civico__c",
+          "opec__c": customerSedeList."opec__c",
+          owner: customerSedeList.owner,
+          "partitaIva__c": customerSedeList."partitaIva__c",
+          phone: customerSedeList.phone,
+          "primario1__c": customerSedeList."primario1__c",
+          "primario2__c": customerSedeList."primario2__c",
+          "primario3__c": customerSedeList."primario3__c",
+          "primario4__c": customerSedeList."primario4__c",
+          "primario5__c": customerSedeList."primario5__c",
+          "primario6__c": customerSedeList."primario6__c",
+          "primario7__c": customerSedeList."primario7__c",
+          "primario8__c": customerSedeList."primario8__c",
+          "profondita_Coordinate_Anagrafiche__c": customerSedeList."profondita_Coordinate_Anagrafiche__c",
+          "provincia_IOL__c": customerSedeList."provincia_IOL__c",
+          recordTypeId: customerSedeList.recordTypeId,
+          "sede_Primaria_OPEC__c": customerSedeList."sede_Primaria_OPEC__c",
+          "telefono2__c": customerSedeList."telefono2__c",
+          "telefono3__c": customerSedeList."telefono3__c",
+          "telefono4__c": customerSedeList."telefono4__c",
+          "telefono5__c": customerSedeList."telefono5__c",
+          "telefono6__c": customerSedeList."telefono6__c",
+          "telefono7__c": customerSedeList."telefono7__c",
+          "telefono8__c": customerSedeList."telefono8__c",
+          "telefono_1_ID__c": customerSedeList."telefono_1_ID__c",
+          "telefono_2_ID__c": customerSedeList."telefono_2_ID__c",
+          "telefono_3_ID__c": customerSedeList."telefono_3_ID__c",
+          "telefono_4_ID__c": customerSedeList."telefono_4_ID__c",
+          "telefono_5_ID__c": customerSedeList."telefono_5_ID__c",
+          "telefono_6_ID__c": customerSedeList."telefono_6_ID__c",
+          "telefono_7_ID__c": customerSedeList."telefono_7_ID__c",
+          "telefono_8_ID__c": customerSedeList."telefono_8_ID__c",
+          "tipologiaTelefono1__c": customerSedeList."tipologiaTelefono1__c",
+          "tipologiaTelefono2__c": customerSedeList."tipologiaTelefono2__c",
+          "tipologiaTelefono3__c": customerSedeList."tipologiaTelefono3__c",
+          "tipologiaTelefono4__c": customerSedeList."tipologiaTelefono4__c",
+          "tipologiaTelefono5__c": customerSedeList."tipologiaTelefono5__c",
+          "tipologiaTelefono6__c": customerSedeList."tipologiaTelefono6__c",
+          "tipologiaTelefono7__c": customerSedeList."tipologiaTelefono7__c",
+          "tipologiaTelefono8__c": customerSedeList."tipologiaTelefono8__c",
+          "tipologia_Persona_Giuridica__c": customerSedeList."tipologia_Persona_Giuridica__c",
+          "tipologia_societa_giuridica__c": customerSedeList."tipologia_societa_giuridica__c",
+          "toponimo__c": customerSedeList."toponimo__c",
+          transactionId: customerSedeList.transactionId,
+          "type": customerSedeList."type",
+          "ultima_Posizione_Amminstrativa__c": customerSedeList."ultima_Posizione_Amminstrativa__c",
+          website: customerSedeList.website,
+          "IOL_CustomerCountryCod__c": customerSedeList."IOL_CustomerCountryCod__c",
+          "IOL_GruppoContabilitaCliente__c": customerSedeList."IOL_GruppoContabilitaCliente__c",
+          "IOL_CategoriaDiAppartenenza__c": customerSedeList."IOL_CategoriaDiAppartenenza__c",
+          "IOL_TipoDiPubblicaAmministrazione__c": customerSedeList."IOL_TipoDiPubblicaAmministrazione__c",
+          "IOL_ConsensoVenditaTerzi__c": customerSedeList."IOL_ConsensoVenditaTerzi__c",
+          "IOL_ConsensoProfilazione__c": customerSedeList."IOL_ConsensoProfilazione__c",
+          "IOL_ConsensoTelefono1__c": customerSedeList."IOL_ConsensoTelefono1__c",
+          "IOL_ConsensoTelefono2__c": customerSedeList."IOL_ConsensoTelefono2__c",
+          "IOL_ConsensoTelefono3__c": customerSedeList."IOL_ConsensoTelefono3__c",
+          "IOL_ConsensoTelefono4__c": customerSedeList."IOL_ConsensoTelefono4__c",
+          "IOL_ConsensoTelefono5__c": customerSedeList."IOL_ConsensoTelefono5__c",
+          "IOL_ConsensoTelefono6__c": customerSedeList."IOL_ConsensoTelefono6__c",
+          "IOL_ConsensoTelefono7__c": customerSedeList."IOL_ConsensoTelefono7__c",
+          "IOL_ConsensoTelefono8__c": customerSedeList."IOL_ConsensoTelefono8__c",
+		  "PrimarioCustomer1__c": customerSedeList.PrimarioCustomer1__c,
+		  "PrimarioCustomer2__c": customerSedeList.PrimarioCustomer2__c,
+		  "PrimarioCustomer3__c": customerSedeList.PrimarioCustomer3__c,
+		  "PrimarioCustomer4__c": customerSedeList.PrimarioCustomer4__c,
+		  "PrimarioCustomer5__c": customerSedeList.PrimarioCustomer5__c,
+		  "PrimarioCustomer6__c": customerSedeList.PrimarioCustomer6__c,
+		  "PrimarioCustomer7__c": customerSedeList.PrimarioCustomer7__c,
+		  "PrimarioCustomer8__c": customerSedeList.PrimarioCustomer8__c,
+		  "Email_Fatturazione_CodUns__c": customerSedeList.Email_Fatturazione_CodUns__c,
+		  "Email_Post_Vendita_IOL_CodUns__c": customerSedeList.Email_Post_Vendita_IOL_CodUns__c,
+		  "Email_Commerciale_IOL_CodUns__c": customerSedeList.Email_Commerciale_IOL_CodUns__c,
+		  "IOL_Privato__c": customerSedeList.IOL_Privato__c
+        },
+        evento: transactionList.evento,
+        fonte: transactionList.fonte,
+        transactionId: transactionList.transactionId
+      }
+    }
+  } as Object {class: "cdbPoller.Event"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="Simplecases"><![CDATA[%dw 2.0
+output application/java  
+---
+payload.simplePackets map (simplePacket, indexOfSimplePacket) -> {
+    eventName: simplePacket.eventName,
+    packets: simplePacket.packets map (packet, indexOfPacket) -> {
+      packetId: packet.packetId,
+      transactionList: packet.transactionList map (transactionList, indexOfTransactionList) -> {
+        customerSedeList: transactionList.customerSedeList map (customerSedeList, indexOfCustomerSedeList) -> {
+          "DUG__c": customerSedeList."DUG__c",
+          "IOL_AnnoFatturato__c": customerSedeList."IOL_AnnoFatturato__c",
+          "IOL_AnnoRiferimentoDipendenti__c": customerSedeList."IOL_AnnoRiferimentoDipendenti__c",
+          "IOL_BuonoOrdine__c": customerSedeList."IOL_BuonoOrdine__c",
+          "IOL_CategoriaISTAT__c": customerSedeList."IOL_CategoriaISTAT__c",
+          "IOL_CategoriaMerceologica__c": customerSedeList."IOL_CategoriaMerceologica__c",
+          "IOL_Categoria__c": customerSedeList."IOL_Categoria__c",
+          "IOL_CodiceAreaElenco__c": customerSedeList."IOL_CodiceAreaElenco__c",
+          "IOL_CodiceCategoriaISTAT__c": customerSedeList."IOL_CodiceCategoriaISTAT__c",
+          "IOL_CodiceCategoriaMercMassimaSpesa__c": customerSedeList."IOL_CodiceCategoriaMercMassimaSpesa__c",
+          "IOL_CodiceCategoriaMerceologica__c": customerSedeList."IOL_CodiceCategoriaMerceologica__c",
+          "IOL_CodiceIndicatoreClientiSpeciali__c": customerSedeList."IOL_CodiceIndicatoreClientiSpeciali__c",
+          "IOL_CognomePersonaFisica__c": customerSedeList."IOL_CognomePersonaFisica__c",
+          "IOL_CustomerCessatoRiattivabile__c": customerSedeList."IOL_CustomerCessatoRiattivabile__c",
+          "IOL_Email_Arricchimento_PEC__c": customerSedeList."IOL_Email_Arricchimento_PEC__c",
+          "IOL_Email_Bozze_PEC__c": customerSedeList."IOL_Email_Bozze_PEC__c",
+          "IOL_Email_Commerciale_IOL_PEC__c": customerSedeList."IOL_Email_Commerciale_IOL_PEC__c",
+          "IOL_Email_Fatturazione_PEC__c": customerSedeList."IOL_Email_Fatturazione_PEC__c",
+          "IOL_Email_Post_Vendita_PEC__c": customerSedeList."IOL_Email_Post_Vendita_PEC__c",
+          "IOL_IndirizzoID__c": customerSedeList."IOL_IndirizzoID__c",
+          "IOL_MercatoAggregato__c": customerSedeList."IOL_MercatoAggregato__c",
+          "IOL_NomePersonaFisica__c": customerSedeList."IOL_NomePersonaFisica__c",
+          "IOL_NumeroREA__c": customerSedeList."IOL_NumeroREA__c",
+          "IOL_OpecConsegnabile__c": customerSedeList."IOL_OpecConsegnabile__c",
+          "IOL_PotenzialeNIP__c": customerSedeList."IOL_PotenzialeNIP__c",
+          "IOL_SedeCessataRiattivabile__c": customerSedeList."IOL_SedeCessataRiattivabile__c",
+          "IOL_SottoareaMercato__c": customerSedeList."IOL_SottoareaMercato__c",
+          "IOL_SottoclasseDipendenti__c": customerSedeList."IOL_SottoclasseDipendenti__c",
+          "IOL_SottoclasseFatturato__c": customerSedeList."IOL_SottoclasseFatturato__c",
+          "IOL_TipoMercato__c": customerSedeList."IOL_TipoMercato__c",
+          "IOL_classificazionePMI__c": customerSedeList."IOL_classificazionePMI__c",
+          "URL_Fanpage__c": customerSedeList."URL_Fanpage__c",
+          "URL_ID_Fanpage__c": customerSedeList."URL_ID_Fanpage__c",
+          "URL_ID_Istituzionale__c": customerSedeList."URL_ID_Istituzionale__c",
+          "URL_ID_Pagine_Bianche__c": customerSedeList."URL_ID_Pagine_Bianche__c",
+          "URL_ID_Pagine_Gialle__c": customerSedeList."URL_ID_Pagine_Gialle__c",
+          "URL_Pagine_Bianche__c": customerSedeList."URL_Pagine_Bianche__c",
+          "URL_Pagine_Gialle__c": customerSedeList."URL_Pagine_Gialle__c",
+          "anno_Fondazione__c": customerSedeList."anno_Fondazione__c",
+          annualRevenue: customerSedeList.annualRevenue,
+          billingCity: customerSedeList.billingCity,
+          billingCountry: customerSedeList.billingCountry,
+          billingCountryCod: customerSedeList.billingCountryCod,
+          billingState: customerSedeList.billingState,
+          billingStreet: customerSedeList.billingStreet,
+          "cap__c": customerSedeList."cap__c",
+          "cellula__c": customerSedeList."cellula__c",
+          "codiceFiscale__c": customerSedeList."codiceFiscale__c",
+          "codice_Comune_IOL__c": customerSedeList."codice_Comune_IOL__c",
+          "codice_Customer__c": customerSedeList."codice_Customer__c",
+          "codice_Frazione__c": customerSedeList."codice_Frazione__c",
+          "codice_Provincia_REA__c": customerSedeList."codice_Provincia_REA__c",
+          "codice_Sede__c": customerSedeList."codice_Sede__c",
+          "codice_Customer__c_old": customerSedeList."codice_Customer__c_old",
+          "IOL_CodiceSede_old": customerSedeList."IOL_CodiceSede_old",
+          "codice_Stato_Customer__c": customerSedeList."codice_Stato_Customer__c",
+          "codice_Stato_Sede__c": customerSedeList."codice_Stato_Sede__c",
+          "comune_IOL__c": customerSedeList."comune_IOL__c",
+          "coordinate_Anagrafiche__cX": customerSedeList."coordinate_Anagrafiche__cX",
+          "coordinate_Anagrafiche__cY": customerSedeList."coordinate_Anagrafiche__cY",
+          "coordinate_Manuali__c": customerSedeList."coordinate_Manuali__c",
+          "dato_Fiscale_Estero_Certificato__c": customerSedeList."dato_Fiscale_Estero_Certificato__c",
+          "email_Arricchimento_ID__c": customerSedeList."email_Arricchimento_ID__c",
+          "email_Arricchimento__c": customerSedeList."email_Arricchimento__c",
+          "email_Bozze_ID__c": customerSedeList."email_Bozze_ID__c",
+          "email_Bozze__c": customerSedeList."email_Bozze__c",
+          "email_Commerciale_IOL_ID__c": customerSedeList."email_Commerciale_IOL_ID__c",
+          "email_Commerciale_IOL__c": customerSedeList."email_Commerciale_IOL__c",
+          "email_Fatturazione_ID__c": customerSedeList."email_Fatturazione_ID__c",
+          "email_Fatturazione__c": customerSedeList."email_Fatturazione__c",
+          "email_Post_Vendita_ID__c": customerSedeList."email_Post_Vendita_ID__c",
+          "email_Post_Vendita__c": customerSedeList."email_Post_Vendita__c",
+          "ente_Pubblico__c": customerSedeList."ente_Pubblico__c",
+          evento: customerSedeList.evento,
+          "fatturazione_Codice_Fiscale__c": customerSedeList."fatturazione_Codice_Fiscale__c",
+          "fatturazione_Elettronica_Obbligatoria__c": customerSedeList."fatturazione_Elettronica_Obbligatoria__c",
+          "frazione__c": customerSedeList."frazione__c",
+          industry: customerSedeList.industry,
+          "info_Toponimo__c": customerSedeList."info_Toponimo__c",
+          "insegna__c": customerSedeList."insegna__c",
+          name: customerSedeList.name,
+          "nazione__c": customerSedeList."nazione__c",
+          "note_sul_Recapito_Fattura__c": customerSedeList."note_sul_Recapito_Fattura__c",
+          numberOfEmployees: customerSedeList.numberOfEmployees,
+          "numero_Civico__c": customerSedeList."numero_Civico__c",
+          "opec__c": customerSedeList."opec__c",
+          owner: customerSedeList.owner,
+          "partitaIva__c": customerSedeList."partitaIva__c",
+          phone: customerSedeList.phone,
+          "primario1__c": customerSedeList."primario1__c",
+          "primario2__c": customerSedeList."primario2__c",
+          "primario3__c": customerSedeList."primario3__c",
+          "primario4__c": customerSedeList."primario4__c",
+          "primario5__c": customerSedeList."primario5__c",
+          "primario6__c": customerSedeList."primario6__c",
+          "primario7__c": customerSedeList."primario7__c",
+          "primario8__c": customerSedeList."primario8__c",
+          "profondita_Coordinate_Anagrafiche__c": customerSedeList."profondita_Coordinate_Anagrafiche__c",
+          "provincia_IOL__c": customerSedeList."provincia_IOL__c",
+          recordTypeId: customerSedeList.recordTypeId,
+          "sede_Primaria_OPEC__c": customerSedeList."sede_Primaria_OPEC__c",
+          "telefono2__c": customerSedeList."telefono2__c",
+          "telefono3__c": customerSedeList."telefono3__c",
+          "telefono4__c": customerSedeList."telefono4__c",
+          "telefono5__c": customerSedeList."telefono5__c",
+          "telefono6__c": customerSedeList."telefono6__c",
+          "telefono7__c": customerSedeList."telefono7__c",
+          "telefono8__c": customerSedeList."telefono8__c",
+          "telefono_1_ID__c": customerSedeList."telefono_1_ID__c",
+          "telefono_2_ID__c": customerSedeList."telefono_2_ID__c",
+          "telefono_3_ID__c": customerSedeList."telefono_3_ID__c",
+          "telefono_4_ID__c": customerSedeList."telefono_4_ID__c",
+          "telefono_5_ID__c": customerSedeList."telefono_5_ID__c",
+          "telefono_6_ID__c": customerSedeList."telefono_6_ID__c",
+          "telefono_7_ID__c": customerSedeList."telefono_7_ID__c",
+          "telefono_8_ID__c": customerSedeList."telefono_8_ID__c",
+          "tipologiaTelefono1__c": customerSedeList."tipologiaTelefono1__c",
+          "tipologiaTelefono2__c": customerSedeList."tipologiaTelefono2__c",
+          "tipologiaTelefono3__c": customerSedeList."tipologiaTelefono3__c",
+          "tipologiaTelefono4__c": customerSedeList."tipologiaTelefono4__c",
+          "tipologiaTelefono5__c": customerSedeList."tipologiaTelefono5__c",
+          "tipologiaTelefono6__c": customerSedeList."tipologiaTelefono6__c",
+          "tipologiaTelefono7__c": customerSedeList."tipologiaTelefono7__c",
+          "tipologiaTelefono8__c": customerSedeList."tipologiaTelefono8__c",
+          "tipologia_Persona_Giuridica__c": customerSedeList."tipologia_Persona_Giuridica__c",
+          "tipologia_societa_giuridica__c": customerSedeList."tipologia_societa_giuridica__c",
+          "toponimo__c": customerSedeList."toponimo__c",
+          transactionId: customerSedeList.transactionId,
+          "type": customerSedeList."type",
+          "ultima_Posizione_Amminstrativa__c": customerSedeList."ultima_Posizione_Amminstrativa__c",
+          website: customerSedeList.website,
+          "IOL_CustomerCountryCod__c": customerSedeList."IOL_CustomerCountryCod__c",
+          "IOL_GruppoContabilitaCliente__c": customerSedeList."IOL_GruppoContabilitaCliente__c",
+          "IOL_CategoriaDiAppartenenza__c": customerSedeList."IOL_CategoriaDiAppartenenza__c",
+          "IOL_TipoDiPubblicaAmministrazione__c": customerSedeList."IOL_TipoDiPubblicaAmministrazione__c",
+          "IOL_ConsensoVenditaTerzi__c": customerSedeList."IOL_ConsensoVenditaTerzi__c",
+          "IOL_ConsensoProfilazione__c": customerSedeList."IOL_ConsensoProfilazione__c",
+          "IOL_ConsensoTelefono1__c": customerSedeList."IOL_ConsensoTelefono1__c",
+          "IOL_ConsensoTelefono2__c": customerSedeList."IOL_ConsensoTelefono2__c",
+          "IOL_ConsensoTelefono3__c": customerSedeList."IOL_ConsensoTelefono3__c",
+          "IOL_ConsensoTelefono4__c": customerSedeList."IOL_ConsensoTelefono4__c",
+          "IOL_ConsensoTelefono5__c": customerSedeList."IOL_ConsensoTelefono5__c",
+          "IOL_ConsensoTelefono6__c": customerSedeList."IOL_ConsensoTelefono6__c",
+          "IOL_ConsensoTelefono7__c": customerSedeList."IOL_ConsensoTelefono7__c",
+          "IOL_ConsensoTelefono8__c": customerSedeList."IOL_ConsensoTelefono8__c",
+		  "PrimarioCustomer1__c": customerSedeList.PrimarioCustomer1__c,
+		  "PrimarioCustomer2__c": customerSedeList.PrimarioCustomer2__c,
+		  "PrimarioCustomer3__c": customerSedeList.PrimarioCustomer3__c,
+		  "PrimarioCustomer4__c": customerSedeList.PrimarioCustomer4__c,
+		  "PrimarioCustomer5__c": customerSedeList.PrimarioCustomer5__c,
+		  "PrimarioCustomer6__c": customerSedeList.PrimarioCustomer6__c,
+		  "PrimarioCustomer7__c": customerSedeList.PrimarioCustomer7__c,
+		  "PrimarioCustomer8__c": customerSedeList.PrimarioCustomer8__c,
+		  "Email_Fatturazione_CodUns__c": customerSedeList.Email_Fatturazione_CodUns__c,
+		  "Email_Post_Vendita_IOL_CodUns__c": customerSedeList.Email_Post_Vendita_IOL_CodUns__c,
+		  "Email_Commerciale_IOL_CodUns__c": customerSedeList.Email_Commerciale_IOL_CodUns__c,
+		  "IOL_Privato__c": customerSedeList.IOL_Privato__c
+        },
+        evento: transactionList.evento,
+        fonte: transactionList.fonte,
+        transactionId: transactionList.transactionId
+      }
+    }
+  } as Object {class: "cdbPoller.Event"}]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Events: #[sizeOf(payload)]" level="INFO" doc:name="Event size" />
+                <flow-ref name="SimplePacketsBatch" doc:name="SimplePacketsBatch" />
+            </route>
+            <route>
+                <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Pacchetti complessi... TODO" level="INFO" doc:name="Logger" />
+            </route>
+        </scatter-gather>
+		<flow-ref doc:name="clean Variables" doc:id="223ead90-9db2-4423-bf52-0ee56617d75e" name="cleanVariables"/>
+    </sub-flow>
+	<sub-flow name="cleanVariables" doc:id="3e904187-475e-491c-9ebe-34cf2bfc67a7" >
+		<remove-variable doc:name="CategorieMap" doc:id="4437ce8c-05e8-45c3-ae93-04398b8211c8" variableName="CategorieMap"/>
+		<remove-variable doc:name="Simplecases" doc:id="a5818b7f-bfd0-40f6-8097-747bf308f3ce" variableName="Simplecases"/>
+	</sub-flow>
+	<flow name="SimplePacketsBatch">
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------input phase #[payload]" level="INFO" doc:name="Logger" />
+
+        <set-variable variableName="BatchCounter" value="#[0]" doc:name="Variable" />
+
+        <batch:job jobName="SimplePacketsBatch" maxFailedRecords="10">
+            <batch:process-records>
+                <batch:step name="Batch_Step">
+					<ee:transform doc:name="Transform Message" doc:id="b98e0fd6-a990-4856-ab43-f1986cd071ba" >
+						<ee:message >
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="BatchCounter" ><![CDATA[%dw 2.0
+output application/java
+---
+vars.BatchCounter + 1]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Batch step (run: #[vars.BatchCounter] : #[payload]" level="INFO" doc:name="Logger" />
+                    <batch:aggregator size="25" doc:name="Batch Commit">
+                        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Batch commit #[payload]" level="INFO" doc:name="Logger" />
+                        <set-variable variableName="BatchInput" value="#[payload]" doc:name="Variable" />
+                        <flow-ref name="CallSalesforce" doc:name="CallSalesforce" />
+                    </batch:aggregator>
+                </batch:step>
+            </batch:process-records>
+            <batch:on-complete>
+                <logger level="INFO" doc:name="Logger" message="C-CDB001 ----- REPLICACDB ONCLOUD ----------LOG END-----${mule.log.expression.exit} " />
+            </batch:on-complete>
+        </batch:job>
+
+    </flow>
+
+    <sub-flow name="LoadCategorie_v3">
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Start loading Categorie v3" level="INFO" doc:name="Logger" />
+		<set-variable variableName="CategorieMap" value="#[{}]" doc:name="CategorieMap" />
+		<salesforce:query doc:name="Query" doc:id="74eb677e-5937-4fb3-9a0c-e9cc3d19c4f2" config-ref="Salesforce__OAuth_2_0_Username_Password">
+			<salesforce:salesforce-query ><![CDATA[SELECT Id, IOL_CodiceCategoriaMerceologica__c FROM Categorie_Merceologiche__c where IOL_CodiceCategoriaMerceologica__c != '' order by IOL_CodiceCategoriaMerceologica__c]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload>%dw 2.0
+output application/java  
+---
+payload</ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Estratte (v3) #[sizeOf(payload)] righe" level="INFO" doc:name="Logger" />
+        <foreach doc:name="For Each">
+			<java:invoke doc:name="add to CategorieMap" doc:id="75eff528-fc6d-433d-9523-385cbd75811b" instance="#[vars.CategorieMap]" class="java.util.HashMap" method="put(java.lang.Object,java.lang.Object)">
+				<java:args ><![CDATA[#[output application/java
+---
+{
+	arg0: payload.IOL_CodiceCategoriaMerceologica__c,
+	arg1: payload.Id
+}]]]></java:args>
+			</java:invoke>
+        </foreach>
+		<logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Lette (v3) #[sizeOf(vars.CategorieMap)] categorie" level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+    <sub-flow name="LoadCategorie_v4" doc:id="2ca25805-042b-4062-a613-38f26d369693" >
+		<logger level="INFO" doc:name="Logger" doc:id="909b552c-7c9e-422d-888b-084638e3bfbb" message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Start loading Categorie v4" />
+		<set-variable value='#[{} as Object {class: "java.util.HashMap"}]' doc:name="CategorieMap" doc:id="89e71099-2472-4091-9606-59e99965e107" variableName="CategorieMap" />
+		<os:contains doc:name="Contains" doc:id="39dde324-a086-4f93-9ab3-86909b42870e" objectStore="OS_Categorie" key="OS_CATEGORIE"/>
+		<choice doc:name="Choice" doc:id="84d3ea7f-3774-43c1-85d3-75cfd5ce2be1" >
+			<when expression="#[payload == false]">
+				<flow-ref doc:name="Load and Store Categorie" doc:id="34c892b4-d581-42d4-b463-0033f0a4d5fb" name="LoadAndStoreCategorie"/>
+				<logger level="INFO" doc:name="Logger" doc:id="c3b811eb-5ba3-4b82-b99d-7730ef61b489" message="ObjectStore NON contiene Categorie! Ricarico..."/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="a7244785-c35d-4968-8256-f3c78de5f8b8" message="Trovate categorie!"/>
+				<os:retrieve doc:name="Retrieve into CategorieMap" doc:id="bb984c34-5800-4c6d-98ae-d9ddbcae5f1a" target="CategorieMap" key="OS_CATEGORIE" objectStore="OS_Categorie"/>
+				<choice doc:name="Choice" doc:id="347637c8-dc72-42b1-8eec-6936ef5fab49" >
+					<when expression="#[vars.CategorieMap== null or sizeOf(vars.CategorieMap) == 0]">
+						<flow-ref doc:name="Load and Store Categorie" doc:id="7596bedc-8e26-4022-8de2-04f2de3cb407" name="LoadAndStoreCategorie" />
+					</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Logger" doc:id="6ceddb5b-6619-409c-a325-401116fc8219" message="C-CDB001 ----- REPLICACDB ONCLOUD ----------caricate #[sizeOf(vars.CategorieMap)] categorie da ObjectStore" />
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="LoadAndStoreCategorie" doc:id="27bd6e5e-d2f7-4c71-aa20-0e2c418f17b0" >
+		<salesforce:query doc:name="Query" doc:id="a891a95e-b262-4b29-b054-0e535701cfc4" config-ref="Salesforce__OAuth_2_0_Username_Password">
+					<salesforce:salesforce-query><![CDATA[SELECT Id, IOL_CodiceCategoriaMerceologica__c FROM Categorie_Merceologiche__c where IOL_CodiceCategoriaMerceologica__c != '' order by IOL_CodiceCategoriaMerceologica__c]]></salesforce:salesforce-query>
+				</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="f3079508-3a2b-4fef-bde7-c26821f779ee">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c1cc7f9d-8877-4b12-a994-0641039135b8" message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Estratte (v4) #[sizeOf(payload)] righe" />
+		<foreach doc:name="For Each" doc:id="8a9db8f3-0f58-44fd-9a70-8bc010410ea9">
+					<java:invoke method="put(java.lang.Object,java.lang.Object)" doc:name="add to CategorieMap" doc:id="158373ad-a05f-49a9-affb-e1daab7b6354" instance="#[vars.CategorieMap]" class="java.util.HashMap">
+						<java:args><![CDATA[#[output application/java
+---
+{
+	arg0: payload.IOL_CodiceCategoriaMerceologica__c,
+	arg1: payload.Id
+}]]]></java:args>
+					</java:invoke>
+				</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="d7bf83b1-7043-46e3-b9c9-87d859683687" message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Lette (v4) #[sizeOf(vars.CategorieMap)] categorie" />
+		<os:store doc:name="Store" doc:id="1da05589-d5bb-4bdf-85c4-f309c678ebb4" key="OS_CATEGORIE" objectStore="OS_Categorie">
+					<os:value><![CDATA[#[vars.CategorieMap]]]></os:value>
+				</os:store>
+	</sub-flow>
+	<sub-flow name="LoadCategorie_v2">
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Start loading Categorie v2" level="INFO" doc:name="Logger" />
+        <salesforce:query doc:name="Query" doc:id="c148ce41-0201-47e5-a855-8a5078734e2a" config-ref="Salesforce__OAuth_2_0_Username_Password">
+			<salesforce:salesforce-query ><![CDATA[SELECT Id, IOL_CodiceCategoriaMerceologica__c  FROM Categorie_Merceologiche__c ]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------End loading Categorie" level="INFO" doc:name="Logger" />
+        <set-payload value="#[payload]" mimeType="null" />
+        <ee:transform doc:name="Transform Message">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:variables>
+                <ee:set-variable variableName="CategorieList"><![CDATA[%dw 2.0
+output application/java  
+---
+payload map (cat, indexOfCat) -> {
+    codice: cat."IOL_CodiceCategoriaMerceologica__c",
+    id: cat.Id
+  } as Object {class: "cdbPoller.Categoria"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Lette #[sizeOf(vars.CategorieList)] categorie" level="INFO" doc:name="Logger" />
+        <ee:transform doc:name="Transform Message">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:variables>
+                <ee:set-variable variableName="Categorie"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  list: vars.CategorieList
+} as Object {class: "cdbPoller.Categorie"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <set-variable variableName="CategorieMap" value="#[{} as Object {class: java.util.HashMap}]" doc:name="Variable" />
+        <scripting:execute doc:name="Execute" doc:id="d968499f-08ce-4b7c-b01a-e74351cd29e1" engine="Groovy">
+			<scripting:code ><![CDATA[vars.CategorieMap=vars.Categorie.getMap()]]></scripting:code>
+		</scripting:execute>
+    </sub-flow>
+
+    <sub-flow name="CallSalesforce">
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Inizio flow SF" level="INFO" doc:name="Logger" />
+        <flow-ref name="LoadCategorie_v4" doc:name="LoadCategorie_v4" doc:id="67000f5f-2be3-4f05-831d-bdaacbdebb61"/>
+        <set-payload value="#[vars.BatchInput]" doc:name="Set Payload" />
+        <ee:transform doc:name="Transform Message">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json  
+---
+{
+  simpleCases: payload map (payload01, indexOfPayload01) -> {
+    eventName: payload01.eventName,
+    source: "CDBR",
+    packets: payload01.packets map (packet, indexOfPacket) -> {
+      packetId: packet.packetId,
+      transactionList: packet.transactionList map (transactionList, indexOfTransactionList) -> {
+        customerSedeList: transactionList.customerSedeList map (customerSedeList, indexOfCustomerSedeList) -> {
+          "codice_Customer__c": customerSedeList."codice_Customer__c",
+          "codice_Sede__c": customerSedeList."codice_Sede__c",
+          ("iol_CodiceCustomer_old__c": customerSedeList."codice_Customer__c_old") if (customerSedeList."codice_Customer__c_old" != null),
+          ("iol_CodiceSede_old__c": customerSedeList."IOL_CodiceSede_old") if (customerSedeList."IOL_CodiceSede_old" != null),
+          "sede_Primaria_OPEC__c": ("S" == customerSedeList."sede_Primaria_OPEC__c") as String,
+          "IOL_CDBTransactionId__c": transactionList.transactionId,
+          ("dug__c": customerSedeList."DUG__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("toponimo__c": customerSedeList."toponimo__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("Dug_Toponimo__c": customerSedeList."Dug_Toponimo__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          (name: customerSedeList.name) if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_AnnoFatturato__c": customerSedeList."IOL_AnnoFatturato__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("anno_Fondazione__c": customerSedeList."anno_Fondazione__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_AnnoRiferimentoDipendenti__c": customerSedeList."IOL_AnnoRiferimentoDipendenti__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          (annualRevenue: customerSedeList.annualRevenue) if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          (billingCity: customerSedeList.billingCity) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          (billingCountry: customerSedeList.billingCountry) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          (billingState: customerSedeList.billingState) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          (billingStreet: customerSedeList.billingStreet) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_BillingCountryCod__c": customerSedeList.billingCountryCod) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_BuonoOrdine__c": customerSedeList."IOL_BuonoOrdine__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("IOL_CustomerCountryCod__c": customerSedeList."IOL_CustomerCountryCod__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("cap__c": customerSedeList."cap__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          (billingPostalCode: customerSedeList."cap__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_CodiceCategoriaMercMassimaSpesa__c": customerSedeList."IOL_CodiceCategoriaMercMassimaSpesa__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_RelCodiceCategoriaMercMassimaSp__c": vars.CategorieMap[ if (customerSedeList."IOL_CodiceCategoriaMercMassimaSpesa__c" != null) customerSedeList."IOL_CodiceCategoriaMercMassimaSpesa__c" else ""]) if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_Categoria__c": customerSedeList."IOL_Categoria__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("cellula__c": customerSedeList."cellula__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_classificazionePMI__c": customerSedeList."IOL_classificazionePMI__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_CodiceAreaElenco__c": customerSedeList."IOL_CodiceAreaElenco__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_CodiceCategoriaISTAT__c": customerSedeList."IOL_CodiceCategoriaISTAT__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_CodiceCategoriaMerceologica__c": customerSedeList."IOL_CodiceCategoriaMerceologica__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_RelCodiceCategoriaMerceologica__c": vars.CategorieMap[ if (customerSedeList."IOL_CodiceCategoriaMerceologica__c" != null) customerSedeList."IOL_CodiceCategoriaMerceologica__c" else ""]) if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("codice_Comune_IOL__c": customerSedeList."codice_Comune_IOL__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("codice_Stato_Customer__c": customerSedeList."codice_Stato_Customer__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("codiceFiscale__c": customerSedeList."codiceFiscale__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("codice_Frazione__c": customerSedeList."codice_Frazione__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("codice_Provincia_REA__c": customerSedeList."codice_Provincia_REA__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_NumeroREA__c": customerSedeList."IOL_NumeroREA__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("codice_Stato_Sede__c": customerSedeList."codice_Stato_Sede__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_CognomePersonaFisica__c": customerSedeList."IOL_CognomePersonaFisica__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("comune_IOL__c": customerSedeList."comune_IOL__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("Coordinate_Anagrafiche__Latitude__s": 
+            if (customerSedeList."coordinate_Anagrafiche__cX" != null)
+              customerSedeList."coordinate_Anagrafiche__cX" as String
+            else
+              "") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("Coordinate_Anagrafiche__Longitude__s": 
+            if (customerSedeList."coordinate_Anagrafiche__cY" != null)
+              customerSedeList."coordinate_Anagrafiche__cY" as String
+            else
+              "") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("Latitudine__c": 
+            if (customerSedeList."coordinate_Anagrafiche__cX" != null)
+              customerSedeList."coordinate_Anagrafiche__cX" as String
+            else
+              "") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("Longitudine__c": 
+            if (customerSedeList."coordinate_Anagrafiche__cY" != null)
+              customerSedeList."coordinate_Anagrafiche__cY" as String
+            else
+              "") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("coordinate_Manuali__c": customerSedeList."coordinate_Manuali__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("dato_Fiscale_Estero_Certificato__c": customerSedeList."dato_Fiscale_Estero_Certificato__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_CategoriaISTAT__c": customerSedeList."IOL_CategoriaISTAT__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_CategoriaMerceologica__c": customerSedeList."IOL_CategoriaMerceologica__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("email_Arricchimento__c": customerSedeList."email_Arricchimento__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Arricchimento_ID__c": customerSedeList."email_Arricchimento_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Bozze__c": customerSedeList."email_Bozze__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Bozze_ID__c": customerSedeList."email_Bozze_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Commerciale_IOL__c": customerSedeList."email_Commerciale_IOL__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Commerciale_IOL_ID__c": customerSedeList."email_Commerciale_IOL_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Fatturazione__c": customerSedeList."email_Fatturazione__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Fatturazione_ID__c": customerSedeList."email_Fatturazione_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Post_Vendita__c": customerSedeList."email_Post_Vendita__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("email_Post_Vendita_ID__c": customerSedeList."email_Post_Vendita_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_Email_Arricchimento_PEC__c": customerSedeList."IOL_Email_Arricchimento_PEC__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_Email_Bozze_PEC__c": customerSedeList."IOL_Email_Bozze_PEC__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_Email_Commerciale_IOL_PEC__c": customerSedeList."IOL_Email_Commerciale_IOL_PEC__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_Email_Fatturazione_PEC__c": customerSedeList."IOL_Email_Fatturazione_PEC__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_Email_Post_Vendita_PEC__c": customerSedeList."IOL_Email_Post_Vendita_PEC__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("ente_Pubblico__c": customerSedeList."ente_Pubblico__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("fatturazione_Codice_Fiscale__c": customerSedeList."fatturazione_Codice_Fiscale__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("fatturazione_Elettronica_Obbligatoria__c": customerSedeList."fatturazione_Elettronica_Obbligatoria__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("frazione__c": customerSedeList."frazione__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_IndirizzoID__c": customerSedeList."IOL_IndirizzoID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("info_Toponimo__c": customerSedeList."info_Toponimo__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("insegna__c": customerSedeList."insegna__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_MercatoAggregato__c": customerSedeList."IOL_MercatoAggregato__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          (industry: customerSedeList.industry) if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("nazione__c": customerSedeList."nazione__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_PotenzialeNIP__c": customerSedeList."IOL_PotenzialeNIP__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_NomePersonaFisica__c": customerSedeList."IOL_NomePersonaFisica__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("note_sul_Recapito_Fattura__c": customerSedeList."note_sul_Recapito_Fattura__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("numero_Civico__c": customerSedeList."numero_Civico__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          (numberOfEmployees: customerSedeList.numberOfEmployees) if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("opec__c": customerSedeList."opec__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_OpecConsegnabile__c": customerSedeList."IOL_OpecConsegnabile__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("partitaIva__c": customerSedeList."partitaIva__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("profondita_Coordinate_Anagrafiche__c": customerSedeList."profondita_Coordinate_Anagrafiche__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("provincia_IOL__c": customerSedeList."provincia_IOL__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_CustomerCessatoRiattivabile__c": customerSedeList."IOL_CustomerCessatoRiattivabile__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_SedeCessataRiattivabile__c": customerSedeList."IOL_SedeCessataRiattivabile__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("iol_SottoareaMercato__c": customerSedeList."IOL_SottoareaMercato__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_SottoclasseDipendenti__c": customerSedeList."IOL_SottoclasseDipendenti__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_SottoclasseFatturato__c": customerSedeList."IOL_SottoclasseFatturato__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_TipoMercato__c": customerSedeList."IOL_TipoMercato__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("telefono_1_ID__c": customerSedeList."telefono_1_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          (phone: customerSedeList.phone) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario1__c": customerSedeList."primario1__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono1__c": customerSedeList."tipologiaTelefono1__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono_2_ID__c": customerSedeList."telefono_2_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono2__c": customerSedeList."telefono2__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario2__c": customerSedeList."primario2__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono2__c": customerSedeList."tipologiaTelefono2__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono_3_ID__c": customerSedeList."telefono_3_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono3__c": customerSedeList."telefono3__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario3__c": customerSedeList."primario3__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono3__c": customerSedeList."tipologiaTelefono3__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono_4_ID__c": customerSedeList."telefono_4_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono4__c": customerSedeList."telefono4__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario4__c": customerSedeList."primario4__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono4__c": customerSedeList."tipologiaTelefono4__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono_5_ID__c": customerSedeList."telefono_5_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono5__c": customerSedeList."telefono5__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario5__c": customerSedeList."primario5__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono5__c": customerSedeList."tipologiaTelefono5__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono_6_ID__c": customerSedeList."telefono_6_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono6__c": customerSedeList."telefono6__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario6__c": customerSedeList."primario6__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono6__c": customerSedeList."tipologiaTelefono6__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono_7_ID__c": customerSedeList."telefono_7_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono7__c": customerSedeList."telefono7__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario7__c": customerSedeList."primario7__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono7__c": customerSedeList."tipologiaTelefono7__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono_8_ID__c": customerSedeList."telefono_8_ID__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("telefono8__c": customerSedeList."telefono8__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("primario8__c": customerSedeList."primario8__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologiaTelefono8__c": customerSedeList."tipologiaTelefono8__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("tipologia_Persona_Giuridica__c": customerSedeList."tipologia_Persona_Giuridica__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("tipologia_societa_giuridica__c": customerSedeList."tipologia_societa_giuridica__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("ultima_Posizione_Amminstrativa__c": customerSedeList."ultima_Posizione_Amminstrativa__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("type": customerSedeList."type") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("url_ID_Fanpage__c": customerSedeList."URL_ID_Fanpage__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("url_Fanpage__c": customerSedeList."URL_Fanpage__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("url_ID_Istituzionale__c": customerSedeList."URL_ID_Istituzionale__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          (website: customerSedeList.website) if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("url_ID_Pagine_Bianche__c": customerSedeList."URL_ID_Pagine_Bianche__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("url_Pagine_Bianche__c": customerSedeList."URL_Pagine_Bianche__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("url_ID_Pagine_Gialle__c": customerSedeList."URL_ID_Pagine_Gialle__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("url_Pagine_Gialle__c": customerSedeList."URL_Pagine_Gialle__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("iol_CodiceIndicatoreClientiSpeciali__c": customerSedeList."IOL_CodiceIndicatoreClientiSpeciali__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          recordTypeId: 
+            if ("S" == customerSedeList."sede_Primaria_OPEC__c")
+              p("recordTypeId.Customer")
+            else
+              p("recordTypeId.Sede"),
+          ("IOL_GruppoContabilitaCliente__c": 
+            if (customerSedeList."IOL_GruppoContabilitaCliente__c" == null or customerSedeList."IOL_GruppoContabilitaCliente__c" == "")
+              "NULL"
+            else
+              customerSedeList."IOL_GruppoContabilitaCliente__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("IOL_CategoriaDiAppartenenza__c": 
+            if (customerSedeList."IOL_CategoriaDiAppartenenza__c" == null or customerSedeList."IOL_CategoriaDiAppartenenza__c" == "")
+              "NULL"
+            else
+              customerSedeList."IOL_CategoriaDiAppartenenza__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("IOL_TipoDiPubblicaAmministrazione__c": 
+            if (customerSedeList."IOL_TipoDiPubblicaAmministrazione__c" == null or customerSedeList."IOL_TipoDiPubblicaAmministrazione__c" == "")
+              "NULL"
+            else
+              customerSedeList."IOL_TipoDiPubblicaAmministrazione__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("IOL_ConsensoVenditaTerzi__c": customerSedeList."IOL_ConsensoVenditaTerzi__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("IOL_ConsensoProfilazione__c": customerSedeList."IOL_ConsensoProfilazione__c") if ("S" == customerSedeList."sede_Primaria_OPEC__c"),
+          ("IOL_ConsensoTelefono1__c": customerSedeList."IOL_ConsensoTelefono1__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_ConsensoTelefono2__c": customerSedeList."IOL_ConsensoTelefono2__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_ConsensoTelefono3__c": customerSedeList."IOL_ConsensoTelefono3__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_ConsensoTelefono4__c": customerSedeList."IOL_ConsensoTelefono4__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_ConsensoTelefono5__c": customerSedeList."IOL_ConsensoTelefono5__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_ConsensoTelefono6__c": customerSedeList."IOL_ConsensoTelefono6__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_ConsensoTelefono7__c": customerSedeList."IOL_ConsensoTelefono7__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+          ("IOL_ConsensoTelefono8__c": customerSedeList."IOL_ConsensoTelefono8__c") if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer1__c": customerSedeList.PrimarioCustomer1__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer2__c": customerSedeList.PrimarioCustomer2__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer3__c": customerSedeList.PrimarioCustomer3__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer4__c": customerSedeList.PrimarioCustomer4__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer5__c": customerSedeList.PrimarioCustomer5__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer6__c": customerSedeList.PrimarioCustomer6__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer7__c": customerSedeList.PrimarioCustomer7__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("PrimarioCustomer8__c": customerSedeList.PrimarioCustomer8__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("Email_Fatturazione_CodUns__c": customerSedeList.Email_Fatturazione_CodUns__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("Email_Post_Vendita_IOL_CodUns__c": customerSedeList.Email_Post_Vendita_IOL_CodUns__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("Email_Commerciale_IOL_CodUns__c": customerSedeList.Email_Commerciale_IOL_CodUns__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName),
+		  ("IOL_Privato__c": customerSedeList.IOL_Privato__c) if ("VRG" != payload01.eventName and "VDF" != payload01.eventName)
+        },
+        transactionId: transactionList.transactionId
+      }
+    }
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <flow-ref doc:name="log Apex Input" doc:id="04ba2357-fb9f-4354-b9b3-1b673dab57d9" name="logApexInput" />
+		<set-variable variableName="JSONInput" value="#[payload]" doc:name="Variable" />
+		<set-payload value="#[payload]" mimeType="application/json" />
+        <ee:transform doc:name="Transform Message">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload>%dw 2.0
+output application/java  
+---
+payload</ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Chiamo Apex" level="INFO" doc:name="Logger" />
+        <salesforce:invoke-apex-rest-method className="RestSimpleCases" methodName="CDB_Alignment^/rest_simplecases^HttpPost^String" doc:name="Invoke apex rest method" doc:id="6b34c8fa-8b5c-46e8-b596-59922e59cb2a" config-ref="Salesforce__OAuth_2_0_Username_Password"/>
+		<logger message="C-CDB001 ----- REPLICACDB ONCLOUD ----------Output: #[payload]" level="INFO" doc:name="Logger" />
+		<flow-ref doc:name="log Apex Output" doc:id="1fd41004-a2c8-417e-b660-402754447307" name="logApexOutput"/>
+    </sub-flow>
+
+    <sub-flow name="cleanRecords">
+        <flow-ref name="LoadCategorie_v3" doc:name="Load Categorie v3" />
+        <set-variable variableName="AccountList" value="#[[] as Array {class: java.util.ArrayList}]" doc:name="AccountList" />
+        <salesforce:query doc:name="Query" doc:id="8c8f71b6-c70d-464b-b578-25f6ef1a5b80" config-ref="Salesforce__OAuth_2_0_Username_Password">
+			<salesforce:salesforce-query ><![CDATA[select id, name,   IOL_CodiceCategoriaMerceologica__c, IOL_RelCodiceCategoriaMerceologica__c, IOL_CodiceCategoriaMercMassimaSpesa__c, IOL_RelCodiceCategoriaMercMassimaSp__c  from Account  where recordtype.developername='customer'  and ( (IOL_RelCodiceCategoriaMerceologica__c = null and IOL_CodiceCategoriaMerceologica__c != null) or (IOL_RelCodiceCategoriaMercMassimaSp__c = null and IOL_CodiceCategoriaMercMassimaSpesa__c  != null) ) limit 10000]]></salesforce:salesforce-query>
+		</salesforce:query>
+        <logger message="Letti #[sizeOf(payload)] account" level="INFO" doc:name="Logger" />
+        <foreach doc:name="For Each">
+            <ee:transform doc:name="Transform Message">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  Id: payload.Id,
+  "IOL_CodiceCategoriaMerceologica__c": payload."IOL_CodiceCategoriaMerceologica__c",
+  "IOL_CodiceCategoriaMercMassimaSpesa__c": payload."IOL_CodiceCategoriaMercMassimaSpesa__c",
+  ("IOL_RelCodiceCategoriaMerceologica__c": vars.CategorieMap[payload."IOL_CodiceCategoriaMerceologica__c"]) if not payload."IOL_CodiceCategoriaMerceologica__c" == null and not vars.CategorieMap[payload."IOL_CodiceCategoriaMerceologica__c"] == null,
+  ("IOL_RelCodiceCategoriaMercMassimaSp__c": vars.CategorieMap[payload."IOL_CodiceCategoriaMercMassimaSpesa__c"]) if not payload."IOL_CodiceCategoriaMercMassimaSpesa__c" == null and not vars.CategorieMap[payload."IOL_CodiceCategoriaMercMassimaSpesa__c"] == null
+}]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+            <choice doc:name="Choice">
+                <when expression="#[payload.IOL_RelCodiceCategoriaMerceologica__c != null or payload.IOL_RelCodiceCategoriaMercMassimaSp__c != null]">
+					<scripting:execute doc:name="Execute" doc:id="ad61738c-6ec0-4e5e-8e8e-46a8f783e159" engine="Groovy">
+						<scripting:code ><![CDATA[vars.AccountList.add(payload);]]></scripting:code>
+					</scripting:execute>
+<!-- 					<set-variable value="#[[Java::invoke('java.util.ArrayList', 'add(E)', vars.AccountList, {element: payload})]]" doc:name="Set Variable" doc:id="efdbc2e2-44e8-43ab-8860-28d2e2f7271b" variableName="AccountList"/> -->
+                </when>
+                <otherwise>
+                    <logger message="Scarto! #[payload]" level="INFO" doc:name="Logger" />
+                </otherwise>
+            </choice>
+        </foreach>
+        <logger message="Aggiorno #[sizeOf(vars.AccountList)] accounts" level="INFO" doc:name="Logger" />
+        <set-payload value="#[{} as Object {class: java.util.ArrayList(vars.AccountList)}]" doc:name="Set Payload" />
+        <ee:transform doc:name="Transform Message" doc:id="a9808b31-e388-4393-81ea-365c644b6e77" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header = true, separator = '|', lineSeparator = '\r\n' 
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create-job-bulk-api-v2 doc:name="Create job bulk api v 2" doc:id="52471dbe-9d4f-453d-8c8a-f07720710290" config-ref="Salesforce__OAuth_2_0_Username_Password" operation="update" lineEnding="CRLF" objectType="Customer (Account)" columnDelimiter="PIPE"/>
+    </sub-flow>
+
+</mule>

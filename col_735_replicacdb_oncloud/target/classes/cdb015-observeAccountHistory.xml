@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<os:object-store name="Object_store_accountHistory" doc:name="Object store" doc:id="4e9bc306-de7f-4107-815c-e0234f061a11" />
+	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="e8f0e0b7-0d9d-4354-ab2c-2f943199c281" />
+	<flow name="cdb015-observeAccountHistory" doc:id="6408c90b-0587-41c2-8816-0d2cbd41696f" >
+		<scheduler doc:name="Scheduler" doc:id="219ad9f8-5ca9-4983-973b-c3c3ba6806c4" >
+			<scheduling-strategy >
+				<cron expression="0 0 0/1 ? * * *" />
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="init Variables" doc:id="383d11bc-6492-44b7-934f-f7ade818ffa2" name="cdb015-observeAccountHistory_initVariables"/>
+		<flow-ref doc:name="query and send onPrem" doc:id="22d79ffa-3dbe-427f-94de-47b67e23a981" name="cdb015-observeAccountHistory_query"/>
+		<flow-ref doc:name="store LastRunDate" doc:id="8fb02ba9-4e99-41d6-b0c1-a07d822e8bf6" name="cdb015-observeAccountHistory_storeLastRunDate"/>
+		<flow-ref doc:name="log End" doc:id="2a3c7840-f5be-463b-9593-182956b91c76" name="cdb015-observeAccountHistory_logEnd"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="96e19051-6041-47d1-bfdf-79758f7c4862" >
+				<logger level="INFO" doc:name="Log error" doc:id="17a7713a-e4f1-46c9-b1db-7a220fe02972" message='#[output text/plain&#10;---&#10;(vars.flowName) ++ " in errore: " ++ (error.description default "") ++ " - "  ++ (error.detailedDescription default "")]'/>
+				<async doc:name="Async" doc:id="f2df1897-d3bd-4ad2-9c7b-7e3fefdb67c7" >
+					<ee:transform doc:name="Prepare BatchLog Sender" doc:id="39755a3b-f335-4007-8bb7-930df1789b15" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json  
+---
+{
+  TransactionId: vars.transactionId,
+  LogLevel: "ERROR",
+  LogMessage: "Errore allineamento Reseller (onCloud)",
+  BatchFlowName: vars.flowName as String,
+  Fonte: "SALESFORCE",
+  FileName: "",
+  StartDate: now() as String {format: "yyyy-MM-dd-HH:mm:ss"},
+  EndDate: now() as String {format: "yyyy-MM-dd-HH:mm:ss"},
+  NumRows: "-1",
+  NumRowElaborated: "-1",
+  NumRowsBad: "-1",
+  BadFileName: "",
+  Esito: "KO",
+  ExceptionMessage: (error.description default ""),
+  ErrorType: (error.errorType default "") as String
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<flow-ref doc:name="BatchLog Sender" doc:id="8619f7e0-68c3-49d5-88fc-ed4b7d4a2f46" name="BatchLogSenderFlow" />
+				</async>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<sub-flow name="cdb015-observeAccountHistory_query" doc:id="01a3c815-6836-41eb-ae06-e3148a2971d8" >
+		<ee:transform doc:name="prepare Query" doc:id="7de1e477-4266-4a52-8b46-39ab6b86bea9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	Query: "
+select 
+	Account.Codice_Customer__c,
+    OldValue,
+    NewValue,
+    CreatedDate
+from 
+	AccountHistory
+where 
+	field = 'IOL_IsReseller__c'
+    and Account.recordtype.name = 'Customer'
+	and CreatedDate > " ++ vars.lastRunDate as String ++ " 
+	and CreatedDate <= " ++ vars.sysdate ++ " 
+order by CreatedDate"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:query-xml-stream doc:name="queryResult" doc:id="3e1ab437-1c1c-471a-9fbb-0d46ab53a7a2" config-ref="Salesforce__OAuth_2_0_Username_Password" target="queryResult">
+			<salesforce:salesforce-query ><![CDATA[#[payload.Query]]]></salesforce:salesforce-query>
+		</salesforce:query-xml-stream>
+		<choice doc:name="Choice" doc:id="48a7d65a-af00-4a76-bb8c-f0fcbd3fc011" >
+			<when expression="#[sizeOf(vars.queryResult) &gt; 0]">
+				<flow-ref doc:name="handle Results" doc:id="5d9c88ef-657f-4997-a118-9c0b0eb55773" name="cdb015-observeAccountHistory_handleResults" />
+			</when>
+		</choice>
+	</sub-flow>
+	<sub-flow name="cdb015-observeAccountHistory_handleResults" doc:id="18ecba57-7e66-43ba-bad0-928e92b98fb8">
+		<ee:transform doc:name="group by customer having max(date)" doc:id="bb8018d2-51b0-4391-8bc7-f9319be1c723">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="customers"><![CDATA[%dw 2.0
+output application/json
+---
+(((vars.queryResult default []).payload default []).records default []) map ((item, index) -> 
+{
+    customer: item.Account.Codice_Customer__c,
+    flag: item.NewValue,
+    date: item.CreatedDate,
+    "type": "Reseller"
+}) groupBy $.customer pluck ($ maxBy($.date))]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+		<logger level="INFO" doc:name="Log customers" doc:id="552f7575-6f62-4c73-a24c-0d83d7142537" message="#[output text/plain&#10;---&#10;&quot;Estratti &quot; ++ sizeOf(vars.customers) as String ++ &quot; customer: &quot; ++ ((vars.customers.customer joinBy ', ') as String)]" />
+		<jms:publish-consume doc:name="Publish consume" doc:id="ec209193-8e8a-4e62-b562-66c65626f789" config-ref="Active_MQ" sendCorrelationId="ALWAYS" destination="${mq.observeAccountHistory}.${mule.env}">
+					<jms:message>
+						<jms:body><![CDATA[#[vars.customers default []]]]></jms:body>
+						<jms:reply-to destination="${mq.observeAccountHistory.back}.${mule.env}" />
+					</jms:message>
+			<jms:consume-configuration maximumWait="60" maximumWaitUnit="SECONDS" />
+				</jms:publish-consume>
+		<validation:is-true doc:name="esito" doc:id="34a19206-c6e6-4bbd-b647-8264e7b82cdd" config-ref="Validation_Config" expression="#[payload.esito default false]" message='Ricevuto KO da flow onprem di allineamento Customer Reseller&#10;---&#10;""'/>
+	</sub-flow>
+	<sub-flow name="cdb015-observeAccountHistory_storeLastRunDate" doc:id="2d80d328-16f5-4678-ab2e-072c5bd83322" >
+		<os:store doc:name="lastRunDate" doc:id="5e62b468-db38-478a-9384-9df71eebb858" key="lastRunDate" objectStore="Object_store_accountHistory">
+			<os:value ><![CDATA[#[vars.sysdate]]]></os:value>
+		</os:store>
+		<logger level="INFO" doc:name="Log lastRunDate" doc:id="5404b1a5-3442-43e7-8421-90e021653650" message='#[output text/plain&#10;---&#10;"new lastRunDate: " ++ vars.sysdate as String]'/>
+		<remove-variable doc:name="customers" doc:id="a17c270e-5fc9-4c35-bdf3-dc40a25776e0" variableName="customers" />
+		<remove-variable doc:name="queryResult" doc:id="0a3d12d2-ca14-4506-bb4f-dcad76211d18" variableName="queryResult" />
+	</sub-flow>
+	<sub-flow name="cdb015-observeAccountHistory_initVariables" doc:id="00d52577-475f-4b50-a45d-14534defe3fb" >
+		<set-variable value="#[correlationId]" doc:name="transaction Id" doc:id="166df64c-d418-49b3-b864-7d371ed7a6a3" variableName="transactionId"/>
+		<os:retrieve doc:name="lastRunDate" doc:id="00ca48aa-357f-4568-8f55-2004cb7bf5a7" key="lastRunDate" objectStore="Object_store_accountHistory" target="lastRunDate">
+			<os:default-value ><![CDATA[#["2024-01-30T00:00:00.000Z"]]]></os:default-value>
+		</os:retrieve>
+		<set-variable value="#[(now() as String {format: &quot;yyyy-MM-dd'T'HH:mm:ss.000'Z'&quot;})]" doc:name="sysdate" doc:id="6f077381-2dfe-48ec-aa1f-5ff0520af8e7" variableName="sysdate" />
+		<set-variable value='#["CDB015-Reseller SF&gt;CDB"]' doc:name="flowName" doc:id="3988ad25-7aa4-4f8d-9973-d5961d3ce52a" variableName="flowName"/>
+		<logger level="INFO" doc:name="Log Start" doc:id="85c8d0e1-4de1-4931-99c3-5eef9d39f015" message='#[output text/plain&#10;---&#10;(vars.flowName default "") ++ " Inizio elaborazione."]'/>
+	</sub-flow>
+	<sub-flow name="cdb015-observeAccountHistory_logEnd" doc:id="8b668cc2-f1b5-4744-976d-b7bc0aac114d" >
+		<logger level="INFO" doc:name="Log End" doc:id="1be14f8d-2758-4f46-be4a-abc590a16271" message='#[output text/plain&#10;---&#10;(vars.flowName default "") ++ " Fine elaborazione."]' />
+		<async doc:name="Async" doc:id="8af72e6e-0da6-4dbe-90e2-4bdce825064d" >
+			<ee:transform doc:name="Prepare BatchLog Sender" doc:id="05f3fd9a-0664-44fc-9dc0-e490ce7047bc" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json  
+---
+{
+  TransactionId: vars.transactionId,
+  LogLevel: "INFO",
+  LogMessage: "End allineamento Reseller",
+  BatchFlowName: vars.flowName as String,
+  Fonte: "SALESFORCE",
+  FileName: "",
+  StartDate: now() as String {format: "yyyy-MM-dd-HH:mm:ss"},
+  EndDate: now() as String {format: "yyyy-MM-dd-HH:mm:ss"},
+  NumRows: sizeOf(vars.customers default []),
+  NumRowElaborated: sizeOf(vars.customers default []),
+  NumRowsBad: "0",
+  BadFileName: "",
+  Esito: "OK",
+  ExceptionMessage: "",
+  ErrorType: ""
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<flow-ref doc:name="BatchLog Sender" doc:id="a830592c-0ff9-4321-955d-2126dbb3c3da" name="BatchLogSenderFlow" />
+		</async>
+	</sub-flow>
+</mule>

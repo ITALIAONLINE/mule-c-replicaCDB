@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:spring-module="http://www.mulesoft.org/schema/mule/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd http://www.mulesoft.org/schema/mule/spring http://www.mulesoft.org/schema/mule/spring/current/mule-spring.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+
+    <flow name="col_735_sf_response_onpremiseFlow1" initialState="stopped" maxConcurrency="1">
+        <!--Migration INFO: The 'flow' element no longer has a 'processingStrategy' attribute.-->
+        <!--    For more information refer to:-->
+        <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine-->
+
+        <jms:listener doc:name="On New Message" doc:id="276593b3-0332-4962-8404-2075c349b787" config-ref="Active_MQ" destination="${mq.queue.back}.${environment.prefix}"/>
+		<logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- LOG START Time: #[server.dateTime.format('dd-MM-YYYY HH:mm:ss:SSS')] -----${mule.log.expression.entry}" level="INFO" doc:name="Logger">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </logger>
+
+        <set-variable value='#[attributes.properties.userProperties."TransactionId"]' doc:name="TransactionId" doc:id="b829cd0d-5f17-4010-9d4e-ff9e1ed720b4" variableName="TransactionId"/>
+		<set-variable variableName="esito" value="#[payload.esito]" doc:name="esito">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+        </set-variable>
+
+        <set-variable variableName="result" value="#[payload.result]" doc:name="result">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+        </set-variable>
+
+        <set-variable variableName="replayId" value="#[payload.replayId]" doc:name="replayId">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+        </set-variable>
+
+        <logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- PRE CHOICE --- ${mule.log.expression.entry}" level="INFO" doc:name="Logger" />
+
+        <choice doc:name="Choice">
+            <when expression="#[vars.esito == true]">
+                <flow-ref name="esito_true_flow_new" doc:name="esito_true_flow_new" />
+            </when>
+            <when expression="#[vars.esito == false]">
+                <flow-ref name="esito_false_flow" doc:name="esito_false_flow" />
+            </when>
+            <otherwise>
+                <logger message=" C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB -----  DEFAULT LOG" level="INFO" doc:name="Logger" />
+            </otherwise>
+        </choice>
+
+        <logger message='"C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- LOG END-----" ${mule.log.expression.exit}' level="INFO" doc:name="Logger" />
+
+        <error-handler>
+            <on-error-continue doc:name="Catch Exception Strategy">
+ 
+                <ee:transform doc:name="Transform Message" doc:id="6a16c99e-cfa7-4217-9c5c-e14f9bbec15a" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="exceptionMessage" ><![CDATA[%dw 2.0
+							output application/java
+							---
+							error.description]]></ee:set-variable>
+						<ee:set-variable variableName="exceptionCode" ><![CDATA[%dw 2.0
+							output application/java
+							---
+							"-1"]]></ee:set-variable>
+						<ee:set-variable variableName="flowThrowerException" ><![CDATA[%dw 2.0
+							output application/java
+							---
+							error.detailedDescription]]></ee:set-variable>
+						<ee:set-variable variableName="exceptionType" ><![CDATA[%dw 2.0
+output application/java
+---
+error.errorType.asString]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+                <ee:transform doc:name="PREPARE FLOW LOG SENDER">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  TransactionId: vars.TransactionId,
+  LogLevel: "ERROR",
+  LogMessage: "Errore nel flusso CDB-REPLICA Response BACK SF onPremise",
+  FlowName: "CDB-REPLICA/col735",
+  SystemProducer: "SF",
+  SystemConsumer: "CDB",
+  "Creation_Date": now() as String {format: "yyyy-MM-dd HH:mm:ss.SSS"},
+  PayloadType: "PE",
+  Payload: payload,
+  ExceptionMessage: 
+    if (not vars.exceptionMessage == null)
+      vars.exceptionMessage[0 to 3999]
+    else
+      "Un errore generico si è verificato su Mule",
+  ErrorType: 
+    if (not vars.exceptionType == null)
+      vars.exceptionType[0 to 199]
+    else
+      "Errore generico",
+  ErrorCode: "-1",
+  ErrorMessage: 
+    if (not vars.exceptionMessage == null)
+      vars.exceptionMessage[0 to 199]
+    else
+      "Un errore generico si è verificato su Mule"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <logger message="CDB-REPLICA-----LOG ERROR-----  ${mule.log.expression.error}" level="INFO" doc:name="LoggerError" />
+                <flow-ref name="FlowLogSender" doc:name="FlowLogSender" />
+            </on-error-continue>
+        </error-handler>
+
+    </flow>
+
+    <sub-flow name="esito_false_flow">
+        <logger message="C-CDB001 ONPREMISE-FALSE----PLATFORM_EVENT UPDATE CDB -----  RESULT ==&gt; #[vars.result]  ---REPLAYID ==&gt; #[vars.replayId]" level="INFO" doc:name="Logger" />
+        <ee:transform doc:name="vars.result to Object">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0 
+output application/java 
+--- 
+read('[' ++ (vars.result as String) ++ ']')]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger message="ESITO FALSE =&gt; #[payload]" level="INFO" doc:name="Logger" />
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload>%dw 2.0
+output application/java  
+---
+payload map {
+  transId: $.transId,
+  error: $.error
+}</ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- FALSE DB ==&gt; #[vars]" level="INFO" doc:name="Logger" />
+        <foreach doc:name="For Each">
+            <db:stored-procedure config-ref="CDB_Configuration" doc:name="Copy_of_Database">
+                <db:sql><![CDATA[{ call ${db_replica}.UpdateTransactionFromPE(
+	:param1,
+    :param2,
+    :param3,
+    :param4,
+    :param5,
+    :param6
+  ) }]]></db:sql>
+                <db:parameter-types>
+                    <db:parameter-type key="param1" type="VARCHAR" />
+                    <db:parameter-type key="param2" type="VARCHAR" />
+                    <db:parameter-type key="param3" type="VARCHAR" />
+                    <db:parameter-type key="param4" type="VARCHAR" />
+                    <db:parameter-type key="param5" type="VARCHAR" />
+                </db:parameter-types>
+                <db:input-parameters><![CDATA[#[{'param1' : payload.transId, 'param2' : 'K', 'param3' : '${mule.user}', 'param4' : payload.error, 'param5' : vars.replayId}]]]></db:input-parameters>
+                <db:output-parameters>
+                    <db:output-parameter key="param6" type="NUMERIC"/>
+                </db:output-parameters>
+            </db:stored-procedure>
+        </foreach>
+        <logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- FALSE FINE ==&gt;  #[payload]" level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+    <sub-flow name="esito_true_flow_new">
+        <logger message="C-CDB001 ONPREMISE-TRUE----PLATFORM_EVENT UPDATE CDB -----  RESULT ==&gt; #[vars.result]" level="INFO" doc:name="Logger" />
+        <ee:transform doc:name="Split">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  result: vars.result
+} as Object {class: "utilities.Split"}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="SplitObject"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  result: vars.result
+} as Object {class: "utilities.Split"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB -----SPLIT: #[write(vars.SplitObject) as String]" level="INFO" doc:name="Logger" />
+        <set-variable value="${environment.prefix}" doc:name="env" doc:id="7ae676b3-d460-4b2f-acee-c07ea0ffbdd9" variableName="env" />
+		<ee:transform doc:name="ObjectList">
+            <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  objectList: payload.transactionsList,
+  env: vars.env
+} as Object {class: "cdbPoller.ObjectList"}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="ObjectList"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  objectList: payload.transactionsList,
+  env: vars.env
+} as Object {class: "cdbPoller.ObjectList"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB -----INPUT DB: ReplayId &gt; #[vars.replayId] &lt;Transactions &gt; #[vars.ObjectList.getTransactions()]" level="INFO" doc:name="Logger">
+            <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+            <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+            <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+            <!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+        </logger>
+        <db:stored-procedure config-ref="CDB_Configuration" doc:name="Database">
+            <db:sql><![CDATA[{ call ${db_replica}.AggiornaStatiDaPE(
+	:param1,
+    :param2,
+    :param3,
+    :param4,
+    :param5,
+    :param6
+  ) }]]></db:sql>
+            <db:parameter-types>
+                <db:parameter-type key="param1" type="ARRAY" />
+                <db:parameter-type key="param2" type="VARCHAR" />
+                <db:parameter-type key="param3" type="VARCHAR" />
+                <db:parameter-type key="param4" type="VARCHAR" />
+                <db:parameter-type key="param5" type="NUMERIC" />
+            </db:parameter-types>
+            <db:input-parameters><![CDATA[#[{'param1' : vars.ObjectList.oracleSQlArray, 'param2' : 'O', 'param3' : 'nuLL', 'param4' : '${mule.user}', 'param5' : vars.replayId}]]]></db:input-parameters>
+            <db:output-parameters>
+                <db:output-parameter key="param6" type="NUMERIC"/>
+            </db:output-parameters>
+        </db:stored-procedure>
+        <logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- TRUE FINE ==&gt; #[payload]" level="INFO" doc:name="Logger" />
+    </sub-flow>
+
+</mule>

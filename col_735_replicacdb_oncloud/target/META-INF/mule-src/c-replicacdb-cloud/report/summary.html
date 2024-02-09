@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migration Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="assets/styles/tsorter.css">
+</head>
+<body>
+<div class="mulesoft-topbar">
+    <div class="mulesoft-appbar">
+        <div class="muleicon muleicon-logo"></div>
+        <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+    </div>
+</div>
+<div class="col-md-8">
+    <h4>Issues found during migration:</h2>
+</div>
+    <div class="col-md-8 col-md-offset-1">
+        <h2 class="text-bold">Errors:</h2>
+        <table id="resources_table" class="table table-featured table-hover sortable">
+                <thead>
+                <tr>
+                    <th colspan="2" data-tsorter="link">Resource</th>
+                    <th data-tsorter="numeric"># Issues</th>
+                </tr>
+                </thead>
+                <tbody id="table-body">
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="error-col_735_replicacdb_oncloud.xml">col_735_replicacdb_oncloud.xml</label></a>
+                                    <input type="checkbox" name="error-col_735_replicacdb_oncloud.xml" id="error-col_735_replicacdb_oncloud.xml" data-toggle="toggle">
+                                </td>
+                                <td>20</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-col_735_replicacdb_oncloud-0.html>- The migration of 'expression-component' is not supported.</a>
+                                        </td>
+                                        <td>5</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-col_735_replicacdb_oncloud-1.html>- The migration of 'sfdc' is not supported.</a>
+                                        </td>
+                                        <td>7</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-col_735_replicacdb_oncloud-2.html>- Custom types defined in Studio 6 are not migrated to Studio 7.</a>
+                                        </td>
+                                        <td>8</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="error-col_735_response_back_sf_oncloud.xml">col_735_response_back_sf_oncloud.xml</label></a>
+                                    <input type="checkbox" name="error-col_735_response_back_sf_oncloud.xml" id="error-col_735_response_back_sf_oncloud.xml" data-toggle="toggle">
+                                </td>
+                                <td>4</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-col_735_response_back_sf_oncloud-0.html>- The migration of 'sfdc' is not supported.</a>
+                                        </td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-col_735_response_back_sf_oncloud-1.html>- Custom types defined in Studio 6 are not migrated to Studio 7.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-col_735_response_back_sf_oncloud-2.html>- The migration of 'expression-component' is not supported.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="error-flowlogsender.xml">flowlogsender.xml</label></a>
+                                    <input type="checkbox" name="error-flowlogsender.xml" id="error-flowlogsender.xml" data-toggle="toggle">
+                                </td>
+                                <td>1</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/error-flowlogsender-0.html>- The migration of 'expression-component' is not supported.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                </tbody>
+            </table>
+    </div>
+    <div class="col-md-8 col-md-offset-1">
+        <h2 class="text-bold">Warnings:</h2>
+        <table id="resources_table" class="table table-featured table-hover sortable">
+                <thead>
+                <tr>
+                    <th colspan="2" data-tsorter="link">Resource</th>
+                    <th data-tsorter="numeric"># Issues</th>
+                </tr>
+                </thead>
+                <tbody id="table-body">
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="warn-col_735_replicacdb_oncloud.xml">col_735_replicacdb_oncloud.xml</label></a>
+                                    <input type="checkbox" name="warn-col_735_replicacdb_oncloud.xml" id="warn-col_735_replicacdb_oncloud.xml" data-toggle="toggle">
+                                </td>
+                                <td>7</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_replicacdb_oncloud-0.html>- Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_replicacdb_oncloud-1.html>- The MEL expression could not be migrated to a DataWeave expression.</a>
+                                        </td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_replicacdb_oncloud-2.html>- The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.</a>
+                                        </td>
+                                        <td>2</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_replicacdb_oncloud-3.html>- Avoid using properties to set the JMS response properties and headers.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_replicacdb_oncloud-4.html>- Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="warn-col_735_response_back_sf_oncloud.xml">col_735_response_back_sf_oncloud.xml</label></a>
+                                    <input type="checkbox" name="warn-col_735_response_back_sf_oncloud.xml" id="warn-col_735_response_back_sf_oncloud.xml" data-toggle="toggle">
+                                </td>
+                                <td>20</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-0.html>- Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.</a>
+                                        </td>
+                                        <td>3</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-1.html>- The MEL expression could not be migrated to a DataWeave expression.</a>
+                                        </td>
+                                        <td>6</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-2.html>- consoleEnabled property do not exist in Mule 4.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-3.html>- Instead of using session variables in the flow, use variables.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-4.html>- Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').</a>
+                                        </td>
+                                        <td>3</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-5.html>- Avoid using an outbound property to determine the status code.</a>
+                                        </td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-6.html>- The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-col_735_response_back_sf_oncloud-7.html>- Avoid using properties to set the JMS properties and headers.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                        <tbody class="labels">
+                            <tr>
+                                <td colspan="2">
+                                    <a><label for="warn-flowlogsender.xml">flowlogsender.xml</label></a>
+                                    <input type="checkbox" name="warn-flowlogsender.xml" id="warn-flowlogsender.xml" data-toggle="toggle">
+                                </td>
+                                <td>3</td>
+                            </tr>
+                        </tbody>
+                        <tbody class="hide" style="display: none">
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-flowlogsender-0.html>- Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-flowlogsender-1.html>- Expressions that query 'inboundProperties' from the message should instead query the message 'attributes'. Remove this component if there are no uses of 'inboundProperties' in expressions or components that rely on 'inboundProperties' (such as 'copy-properties').</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">
+                                            <a href=resources/warn-flowlogsender-2.html>- Avoid using properties to set the JMS properties and headers.</a>
+                                        </td>
+                                        <td>1</td>
+                                    </tr>
+                        </tbody>
+                </tbody>
+            </table>
+    </div>
+    <div class="col-md-8 col-md-offset-1">
+            <h2 class="text-bold">Info:</h2>
+            <table id="resources_table" class="table table-featured table-hover sortable">
+                    <thead>
+                    <tr>
+                        <th colspan="2" data-tsorter="link">Resource</th>
+                        <th data-tsorter="numeric"># Issues</th>
+                    </tr>
+                    </thead>
+                    <tbody id="table-body">
+                            <tbody class="labels">
+                                <tr>
+                                    <td colspan="2">
+                                        <a><label for="info-col_735_replicacdb_oncloud.xml">col_735_replicacdb_oncloud.xml</label></a>
+                                        <input type="checkbox" name="warn-col_735_replicacdb_oncloud.xml" id="info-col_735_replicacdb_oncloud.xml" data-toggle="toggle">
+                                    </td>
+                                    <td>1</td>
+                                </tr>
+                            </tbody>
+                            <tbody class="hide" style="display: none">
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-col_735_replicacdb_oncloud-0.html>- The 'flow' element no longer has a 'processingStrategy' attribute.</a>
+                                            </td>
+                                            <td>1</td>
+                                        </tr>
+                            </tbody>
+                            <tbody class="labels">
+                                <tr>
+                                    <td colspan="2">
+                                        <a><label for="info-col_735_response_back_sf_oncloud.xml">col_735_response_back_sf_oncloud.xml</label></a>
+                                        <input type="checkbox" name="warn-col_735_response_back_sf_oncloud.xml" id="info-col_735_response_back_sf_oncloud.xml" data-toggle="toggle">
+                                    </td>
+                                    <td>2</td>
+                                </tr>
+                            </tbody>
+                            <tbody class="hide" style="display: none">
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-col_735_response_back_sf_oncloud-0.html>- The 'flow' element no longer has a 'processingStrategy' attribute.</a>
+                                            </td>
+                                            <td>1</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <a href=resources/info-col_735_response_back_sf_oncloud-1.html>- In Mule 4, you no longer need to create a Spring bean to declare an Object Store.</a>
+                                            </td>
+                                            <td>1</td>
+                                        </tr>
+                            </tbody>
+                    </tbody>
+                </table>
+        </div>
+
+    <script type="text/javascript" src="assets/js/jquery-3.3.1.js"></script>
+    <script type="text/javascript">
+         $('[data-toggle="toggle"]').change(function(){
+            $(this).parents().next('.hide').toggle();
+        });
+    </script>
+</body>
+</html>

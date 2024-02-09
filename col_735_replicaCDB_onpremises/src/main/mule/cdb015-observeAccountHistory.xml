@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="cdb015-observeAccountHistory" doc:id="388460b0-635a-4468-a16f-4f96eb09afe2" >
+		<jms:listener doc:name="On New Message" doc:id="49a5b0d8-dd88-499f-bc57-26baab18728b" config-ref="Active_MQ" destination="${mq.observeAccountHistory}.${mule.env}">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+			<jms:response sendCorrelationId="ALWAYS" />
+		</jms:listener>
+		<flow-ref doc:name="init Variables" doc:id="58b88a68-a491-49de-925a-0b45768c9faf" name="cdb015-observeAccountHistory_initVariables"/>
+		<flow-ref doc:name="elab Data" doc:id="9dc9714b-b5f4-476e-b85c-078f9d1a3e62" name="cdb015-observeAccountHistory_elabData"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ce692bee-0923-42c9-9e63-ae3e6067d031" >
+				<logger level="INFO" doc:name="Log error" doc:id="002bc9ae-a15a-4443-8909-876477f417b7" message='#[output text/plain&#10;---&#10;(vars.flowName) ++ " in errore: " ++ (error.description default "") ++ " - "  ++ (error.detailedDescription default "")]' />
+				<async doc:name="Async" doc:id="3383dc19-966b-4092-a078-439d580d2dad" >
+					<ee:transform doc:name="Prepare BatchLog Sender" doc:id="d52129dd-df61-43c3-b075-a4fa4b851b02" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json  
+---
+{
+  TransactionId: vars.transactionId,
+  LogLevel: "ERROR",
+  LogMessage: "Errore allineamento Reseller (onPrem)",
+  BatchFlowName: vars.flowName as String,
+  Fonte: "SALESFORCE",
+  FileName: "",
+  StartDate: now() as String {format: "yyyy-MM-dd-HH:mm:ss"},
+  EndDate: now() as String {format: "yyyy-MM-dd-HH:mm:ss"},
+  NumRows: "-1",
+  NumRowElaborated: "-1",
+  NumRowsBad: "-1",
+  BadFileName: "",
+  Esito: "KO",
+  ExceptionMessage: (error.description default ""),
+  ErrorType: (error.errorType default "") as String
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<flow-ref doc:name="BatchLog Sender" doc:id="4ebc313a-1bfc-49a1-b543-786ed82d275b" name="BatchLogSenderFlow" />
+				</async>
+				<ee:transform doc:name="prepare output" doc:id="80c770dc-9291-42bc-af82-055d694420c4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	esito: false
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<sub-flow name="cdb015-observeAccountHistory_elabData" doc:id="ec462694-0512-41b3-859e-b8571d3a5825" >
+		<ee:transform doc:name="filter Reseller" doc:id="955c5712-b280-4b8c-8b9f-1aea296c3563" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload filter ($."type" == 'Reseller') default []]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="prepare Struct" doc:id="cb78bd73-2033-42e0-8fc3-bbf9d79c3aaa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+fun custBlackList(item) = (
+	Db::prepareStruct("CUST_BLACKLIST", [
+	    			item.customer,
+        			item."type",
+        			if ((item.flag default "") == "true") 1 else 0 ])
+)
+fun custBlackListArray(thePayload) = (
+	thePayload map ((item, index) ->
+		custBlackList(item)
+	)
+)
+---
+Db::prepareArray("ARRAY_CUST_BLACKLIST",
+		custBlackListArray(payload))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:stored-procedure doc:name="Stored procedure" doc:id="d7f1552c-826f-4c13-a40e-c293eec404f9" config-ref="CDB_Configuration" target="esito">
+			<db:sql ><![CDATA[{ call ${db_replica}.handleBlackListCustomers(
+	:param1, :param2
+  ) }]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{'param1' : payload}]]]></db:input-parameters>
+			<db:output-parameters >
+				<db:output-parameter key="param2" type="NUMERIC" />
+			</db:output-parameters>
+		</db:stored-procedure>
+		<ee:transform doc:name="prepare output" doc:id="11a1ea93-42e0-4c34-b0e5-32412009a6b6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	esito: (vars.esito.param2 == 0)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="cdb015-observeAccountHistory_initVariables" doc:id="50a604b0-f48e-4dc9-83c7-bf01f07392e7" >
+		<set-variable value="#[correlationId]" doc:name="transaction Id" doc:id="394735b0-93b9-4fcc-8915-2b4d785ba261" variableName="transactionId"/>
+		<set-variable value='#["CDB015-Reseller SF&gt;CDB"]' doc:name="flowName" doc:id="e033cf4c-6e15-4379-8109-eafe4b0bb812" variableName="flowName" />
+		<logger level="INFO" doc:name="Log Start" doc:id="376f59c1-3378-4588-bdcc-d624a0ff4433" message='#[output text/plain&#10;---&#10;(vars.flowName default "") ++ " Inizio elaborazione."]' />
+	</sub-flow>
+</mule>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">col_735_replicaCDB_onpremises.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">The MEL expression could not be migrated to a DataWeave expression.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/mule-runtime/4.3/migration-mel">https://docs.mulesoft.com/mule-runtime/4.3/migration-mel</a></h4>
+            <h4><a href="https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions">https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions</a></h4>
+            <h4><a href="https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4">https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">45</span>&nbsp;
+                    Column: <span class="text-italic text-normal">148</span>
+                </h4>
+                <br>
+                <pre>&lt;foreach collection=&quot;#[flowVars.PolledPacketIterator.getPackets()]&quot; counterVariableName=&quot;PPcounter&quot; doc:name=&quot;Copy_of_For Each Packet&quot;&gt;
+    &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+    &lt;dw:transform-message doc:name=&quot;Copy_of_PolledPacket&quot; metadata:id=&quot;2652fa6a-0c9b-47a1-8b53-ae5438506242&quot;&gt;
+        &lt;dw:set-variable variableName=&quot;PolledPacket&quot;&gt;&lt;![CDATA[%dw 1.0 %output application/java --- { id: payload.id, packet: payload.packet, packetDate: payload.packetDate, rank: payload.rank } as :object { class : &quot;cdbPoller.PolledPacket&quot; }]]&gt;&lt;/dw:set-variable&gt;
+    &lt;/dw:transform-message&gt;
+    &lt;logger message=&quot;#[vars.PolledPacket.log]&quot; level=&quot;INFO&quot; doc:name=&quot;Copy_of_Logger&quot; /&gt;
+    &lt;set-variable variableName=&quot;TransactionList&quot; value=&quot;#[[]]&quot; doc:name=&quot;Copy_of_TransactionList&quot; /&gt;
+    &lt;dw:transform-message doc:name=&quot;Copy_of_newPacket&quot; metadata:id=&quot;f1c55849-e6d5-4a84-9052-73657e90bd3f&quot;&gt;
+        &lt;dw:set-variable variableName=&quot;newPacket&quot;&gt;&lt;![CDATA[%dw 1.0 %output application/java --- { packetId: payload.id, transactionList: flowVars.TransactionList } as :object { class : &quot;cdbPoller.Packet&quot; }]]&gt;&lt;/dw:set-variable&gt;
+    &lt;/dw:transform-message&gt;
+    &lt;flow-ref name=&quot;loadPacket&quot; doc:name=&quot;loadPacket&quot; /&gt;
+    &lt;expression-component doc:name=&quot;Copy_of_Expression&quot;&gt;&lt;![CDATA[flowVars.PacketContainer.packetList.add(flowVars.newPacket);]]&gt;&lt;/expression-component&gt;
+&lt;/foreach&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">593</span>&nbsp;
+                    Column: <span class="text-italic text-normal">182</span>
+                </h4>
+                <br>
+                <pre>&lt;logger message=&quot;C-CDB001-----Poller (CDB -&amp;gt; Cloud)-----LOG Transazioni: #[flowVars.PollerOutput.getTransactionList()]&quot; level=&quot;INFO&quot; doc:name=&quot;Logger&quot;&gt;
+    &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+&lt;/logger&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">375</span>&nbsp;
+                    Column: <span class="text-italic text-normal">146</span>
+                </h4>
+                <br>
+                <pre>&lt;set-variable variableName=&quot;GlobalTransactionList&quot; value=&quot;#[flowVars.PollerOutput.getTransactionList()]&quot; doc:name=&quot;Variable&quot;&gt;
+    &lt;!--Migration WARN: The MEL expression contains a method invocation that could not be migrated to a Dataweave expression.--&gt;
+    &lt;!--    For more information refer to:--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/dataweave-cookbook-java-methods--&gt;
+    &lt;!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel--&gt;
+&lt;/set-variable&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">107</span>&nbsp;
+                    Column: <span class="text-italic text-normal">181</span>
+                </h4>
+                <br>
+                <pre>&lt;logger message=&quot;Letti da DB #[flowVars.PolledPacketIterator.getPackets().size()] packets&quot; level=&quot;INFO&quot; doc:name=&quot;Copy_of_Logger readResultsAndSetUpNew&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">93</span>&nbsp;
+                    Column: <span class="text-italic text-normal">227</span>
+                </h4>
+                <br>
+                <pre>&lt;logger message=&quot;Aggiunti a transaction #[flowVars.Transaction.transactionId] #[flowVars.Transaction.getCustomerSedeList().size()] CustomerSede&quot; level=&quot;INFO&quot; doc:name=&quot;Copy_of_Logger readCustomerSede 2&quot; /&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

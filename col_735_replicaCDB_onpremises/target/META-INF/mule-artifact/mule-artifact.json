@@ -1,0 +1,55 @@
+{
+  "configs": [
+    "common/flowlogsender.xml",
+    "cdb015-observeAccountHistory.xml",
+    "common/BatchLogSender.xml",
+    "col_735_replicaCDB_onpremises.xml",
+    "col_735_sf_response_onpremise.xml"
+  ],
+  "secureProperties": [],
+  "redeploymentEnabled": true,
+  "name": "com.italiaonline.nttdata:c-replicacdb-onpremise:1.0.0-M4-SNAPSHOT",
+  "minMuleVersion": "4.3.0",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedPackages": [
+        "cdbPoller",
+        "col735ReplicaCDB",
+        "utilities"
+      ],
+      "exportedResources": [
+        "app-env-dev.properties",
+        "app-env-local.properties",
+        "app-env-prod.properties",
+        "app-env-uat.properties",
+        "application-types.xml",
+        "cdb015-observeAccountHistory.xml",
+        "col_735_replicaCDB_onpremises.xml",
+        "col_735_sf_response_onpremise.xml",
+        "common/BatchLogSender.xml",
+        "common/flowlogsender.xml",
+        "examples/PollerOutput.json",
+        "json.json",
+        "log4j2.xml",
+        "mule-app.properties",
+        "sql/ARRAY_TYPE_VARCHAR100.sql",
+        "sql/FIND_CHILD_TRANSACTIONS.sql",
+        "sql/FIND_CHILD_TRANSACTIONS_P.sql",
+        "sql/SF_POLLER_LOG.sql",
+        "sql/SF_REPLICA_body.sql",
+        "sql/SF_REPLICA_head.sql",
+        "sql/VCD0A_RP_SF_TRANSACTIONS_REL.sql",
+        "sql/VCD0A_RP_SF_TRANSACTIONS_REL_P.sql",
+        "sql/VCD0B_RP_SF_SEDECUST.sql",
+        "sql/VCD0C_RP_SF_TELEFONO.sql",
+        "sql/VCD0D_RP_SF_MAIL.sql"
+      ]
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}

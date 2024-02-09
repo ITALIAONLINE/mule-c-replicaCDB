@@ -1,0 +1,10 @@
+%dw 2.0
+
+type auto_18ecba57_7e66_43ba_bad0_928e92b98fb8_Input_Variables_queryResult = Array<org_mule_runtime_api_message_Message>
+type org_mule_runtime_api_message_Message = {|
+  payload: Binary, 
+  attributes: Null
+|} {"typeId": "org.mule.runtime.api.message.Message"}
+
+
+

@@ -1,0 +1,73 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.mulesoft.mule.modules</groupId>
+        <artifactId>mule-compatibility-ee</artifactId>
+        <version>1.4.0</version>
+    </parent>
+    
+    <artifactId>mule-compatibility-module</artifactId>
+    <packaging>mule-plugin</packaging>
+ 
+    <name>Mule Compatibility Plugin</name>
+    <description>A Mule App Plugin that complements the result of the Mule Migration Assistant</description>
+    
+    <properties>
+        <formatterConfigPath>../formatter.xml</formatterConfigPath>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.mule.runtime.plugins</groupId>
+                <artifactId>mule-plugin-maven-plugin</artifactId>
+                <version>${mule.extensions.maven.plugin.version}</version>
+                <extensions>true</extensions>
+            </plugin>
+        </plugins>
+    </build>
+   
+    <dependencies>
+        <dependency>
+            <groupId>com.mulesoft.mule.modules.modules</groupId>
+            <artifactId>mule-transport-module-support</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mule.runtime</groupId>
+                    <artifactId>mule-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mule.runtime</groupId>
+                    <artifactId>mule-module-tls</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mule.runtime</groupId>
+                    <artifactId>mule-module-spring-config</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.mulesoft.mule.modules.modules</groupId>
+            <artifactId>mule-module-cxf</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.mulesoft.mule.runtime</groupId>
+                    <artifactId>mule-core-ee</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mulesoft.mule.modules.modules</groupId>
+            <artifactId>mule-module-saml-ee</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+</project>

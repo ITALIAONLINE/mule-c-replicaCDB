@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Mule Migratiol Assistant Report</title>
+    <link rel="stylesheet" type="text/css" href="../assets/styles/mulesoft-styles.css">
+    <link rel="stylesheet" type="text/css" href="../assets/styles/tsorter.css">
+</head>
+<body>
+    <div class="mulesoft-topbar">
+        <div class="mulesoft-appbar">
+            <div class="muleicon muleicon-logo"></div>
+            <div class="anypoint-brand">Mule Migration Assistant 1.0.0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-md-offset-1 sidemenu">
+        <ul class="sidemenu-back">
+            <li><a href="../summary.html">Summary</a></li>
+        </ul>
+    </div>
+    <div class="col-md-8">
+        <h2 class="text-bold">Issues found on: <span class="text-italic text-normal">col_735_replicacdb_oncloud.xml</span></h2>
+        <h4 class="text-bold">Description: <span class="text-italic text-normal">The migration of 'sfdc' is not supported.</span></h4>
+        <h4 class="text-bold">Documentation: </h4>
+            <h4><a href="https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors">https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors</a></h4>
+            <h4><a href="https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool.adoc#unsupported_connectors">https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool.adoc#unsupported_connectors</a></h4>
+        <hr>
+        <br>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">1,295</span>&nbsp;
+                    Column: <span class="text-italic text-normal">552</span>
+                </h4>
+                <br>
+                <pre>&lt;sfdc:query config-ref=&quot;Salesforce__OAuth_2_0_Username_Password&quot; query=&quot;select id, name,   IOL_CodiceCategoriaMerceologica__c, IOL_RelCodiceCategoriaMerceologica__c, IOL_CodiceCategoriaMercMassimaSpesa__c, IOL_RelCodiceCategoriaMercMassimaSp__c  from Account  where recordtype.developername=&apos;customer&apos;  and ( (IOL_RelCodiceCategoriaMerceologica__c = null and IOL_CodiceCategoriaMerceologica__c != null) or (IOL_RelCodiceCategoriaMercMassimaSp__c = null and IOL_CodiceCategoriaMercMassimaSpesa__c  != null) ) limit 10000&quot; doc:name=&quot;Salesforce&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">1,282</span>&nbsp;
+                    Column: <span class="text-italic text-normal">144</span>
+                </h4>
+                <br>
+                <pre>&lt;sfdc:invoke-apex-rest-method config-ref=&quot;Salesforce__OAuth_2_0_Username_Password&quot; restMethodName=&quot;RestSimpleCases||CDB_Alignment^/rest_simplecases^HttpPost^String&quot; doc:name=&quot;Salesforce&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">1,343</span>&nbsp;
+                    Column: <span class="text-italic text-normal">76</span>
+                </h4>
+                <br>
+                <pre>&lt;sfdc:update-bulk config-ref=&quot;Salesforce__OAuth_2_0_Username_Password&quot; type=&quot;Account&quot; doc:name=&quot;Salesforce&quot;&gt;
+    &lt;sfdc:objects ref=&quot;#[payload]&quot; /&gt;
+&lt;/sfdc:update-bulk&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">960</span>&nbsp;
+                    Column: <span class="text-italic text-normal">279</span>
+                </h4>
+                <br>
+                <pre>&lt;sfdc:query config-ref=&quot;Salesforce__OAuth_2_0_Username_Password&quot; query=&quot;SELECT Id, IOL_CodiceCategoriaMerceologica__c FROM Categorie_Merceologiche__c where IOL_CodiceCategoriaMerceologica__c != &apos;&apos; order by IOL_CodiceCategoriaMerceologica__c&quot; doc:name=&quot;Salesforce Query&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">1,034</span>&nbsp;
+                    Column: <span class="text-italic text-normal">216</span>
+                </h4>
+                <br>
+                <pre>&lt;sfdc:query config-ref=&quot;Salesforce__OAuth_2_0_Username_Password&quot; query=&quot;dsql:SELECT Id, IOL_CodiceCategoriaMerceologica__c  FROM Categorie_Merceologiche__c &quot; fetchSize=&quot;1500&quot; doc:name=&quot;Salesforce Query&quot; /&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">26</span>&nbsp;
+                    Column: <span class="text-italic text-normal">34</span>
+                </h4>
+                <br>
+                <pre>&lt;sfdc:config-oauth-user-pass name=&quot;Salesforce__OAuth_2_0_Username_Password&quot; consumerKey=&quot;${salesForce.ConsumerKey}&quot; consumerSecret=&quot;****&quot; username=&quot;${salesForce.user.primary}&quot; password=&quot;****&quot; securityToken=&quot;${salesForce.token.primary}&quot; apiVersion=&quot;${salesForce.Api.version}&quot; doc:name=&quot;Salesforce: OAuth 2.0 Username-Password&quot; tokenEndpoint=&quot;${salesForce.TokenEndpoint}&quot; fetchAllApexRestMetadata=&quot;true&quot; fetchAllApexSoapMetadata=&quot;true&quot; disableSessionInvalidation=&quot;true&quot;&gt;
+    &lt;reconnect frequency=&quot;10000&quot; count=&quot;100&quot; /&gt;
+&lt;/sfdc:config-oauth-user-pass&gt;</pre>
+                <hr>
+            </div>
+            <div class="col-md-12">
+                <h4 class="text-bold">
+                    Line: <span class="text-italic text-normal">989</span>&nbsp;
+                    Column: <span class="text-italic text-normal">212</span>
+                </h4>
+                <br>
+                <pre>&lt;sfdc:query config-ref=&quot;Salesforce__OAuth_2_0_Username_Password&quot; query=&quot;dsql:SELECT Id, IOL_CodiceCategoriaMerceologica__c  FROM Categorie_Merceologiche__c &quot; fetchSize=&quot;1000&quot; doc:name=&quot;Salesforce Query&quot; /&gt;</pre>
+                <hr>
+            </div>
+    </div>
+</body>
+</html>

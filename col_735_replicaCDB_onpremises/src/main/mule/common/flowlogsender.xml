@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<flow name="FlowLogSender" doc:id="5a563fe3-b3f4-4c8a-9aeb-2cd2eb1617c7" >
+		<ee:transform doc:name="Transform Message" doc:id="bd459b6f-810f-4fe6-b141-11a5994ec60b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{ 
+TRANSACTION_ID: if (payload.TransactionId != null) payload.TransactionId else "",
+LOG_LEVEL: if (payload.LogLevel != null) payload.LogLevel else "",
+LOG_MESSAGE: if (payload.LogMessage != null) payload.LogMessage else "",
+FLOW_NAME: if (payload.FlowName != null) payload.FlowName else "",
+SYSTEM_PRODUCER: if (payload.SystemProducer != null) upper (payload.SystemProducer) else "",
+SYSTEM_CONSUMER: if (payload.SystemConsumer != null) upper (payload.SystemConsumer) else "",
+CREATION_DATE: now() as String {format: "yyyy-MM-dd HH:mm:ss.SSS"},
+PAYLOAD_TYPE: if (payload.PayloadType != null)  payload.PayloadType else "",
+PAYLOAD: if (payload.Payload != null) payload.Payload else "",
+EXCEPTION_MESSAGE: if (payload.ExceptionMessage != null) payload.ExceptionMessage else "",
+ERROR_TYPE: if (payload.ErrorType != null) payload.ErrorType else "",
+ERROR_CODE: if (payload.ErrorCode != null) payload.ErrorCode else "",
+ERROR_MESSAGE: if (payload.ErrorMessage != null) payload.ErrorMessage else "",
+NUM_ROWS: if (payload.NumRows != null) payload.NumRows else "0",
+NUM_ROWS_ELABORATED: "0",
+NUM_ROWS_BAD:"0",
+SF_JOB_ID: if (payload.jobId != null) payload.jobId else "",
+ESITO_APEX_SYNC: if (payload.EsitoApexSync != null) payload.EsitoApexSync else ""
+
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="8a8958b4-7206-41a1-9a5d-fa312b51cdb4" message="LOG FLOW CA SENDER ------ LOG PRE INVIO SU CODA ----- I dati che verranno inviati verso il servizio di logging per i flussi Flow sono: #[payload]"/>
+		<jms:publish doc:id="f39d088b-5e3f-407c-b988-786fe236f10d" config-ref="Active_MQ" destination="coltrane.iol.FlowQLog.${environment.prefix}"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="9b5275fb-3d40-467e-b301-84a3f732a816" >
+				<ee:transform doc:name="Transform Message" doc:id="fe00e751-b59a-43c0-851c-2cadb0599863" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="errorMessage" ><![CDATA[%dw 2.0
+output application/java
+---
+error.errorMessage]]></ee:set-variable>
+						<ee:set-variable variableName="errorDescription" ><![CDATA[%dw 2.0
+output application/java
+---
+error.description]]></ee:set-variable>
+						<ee:set-variable variableName="errorType" ><![CDATA[%dw 2.0
+output application/java
+---
+error.errorType]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="LogErroreFlowLogSender" doc:id="104839ef-c17d-46b1-9e61-add5f02ba341" message="LOG FLOW SENDER CA ----- LOG ERROR ----- #[payload]"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

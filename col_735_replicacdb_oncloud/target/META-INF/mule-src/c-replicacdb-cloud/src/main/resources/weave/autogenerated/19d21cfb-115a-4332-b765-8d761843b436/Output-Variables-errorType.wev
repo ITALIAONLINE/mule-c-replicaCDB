@@ -1,0 +1,11 @@
+%dw 2.0
+
+type auto_19d21cfb_115a_4332_b765_8d761843b436_Output_Variables_errorType = org_mule_runtime_api_message_ErrorType | Null
+type org_mule_runtime_api_message_ErrorType = {|
+  identifier?: String, 
+  namespace?: String, 
+  parentErrorType?: org_mule_runtime_api_message_ErrorType
+|} {"typeId": "org.mule.runtime.api.message.ErrorType"}
+
+
+

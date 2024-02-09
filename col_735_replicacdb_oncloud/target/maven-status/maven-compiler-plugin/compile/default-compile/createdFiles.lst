@@ -1,0 +1,9 @@
+cdbPoller\Packet.class
+cdbPoller\Categoria.class
+cdbPoller\Event.class
+cdbPoller\PacketContainer.class
+cdbPoller\CustomerSede.class
+cdbPoller\Account.class
+cdbPoller\PacketContainerInput.class
+cdbPoller\Transaction.class
+cdbPoller\Utils.class
