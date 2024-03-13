@@ -8,7 +8,7 @@ http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/jav
         <!--        * https://docs.mulesoft.com/mule-runtime/4.3/intro-engine-->
 
         <jms:listener doc:name="On New Message" doc:id="276593b3-0332-4962-8404-2075c349b787" config-ref="Active_MQ" destination="${mq.queue.back}.${environment.prefix}"/>
-		<logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- LOG START Time: #[server.dateTime.format('dd-MM-YYYY HH:mm:ss:SSS')] -----${mule.log.expression.entry}" level="INFO" doc:name="Logger">
+		<logger message="C-CDB001 ONPREMISE-----PLATFORM_EVENT UPDATE CDB ----- LOG START Time: #[server.dateTime.format('dd-MM-yyyy HH:mm:ss:SSS')] -----${mule.log.expression.entry}" level="INFO" doc:name="Logger">
             <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
             <!--    For more information refer to:-->
             <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
